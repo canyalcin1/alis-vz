@@ -1,6 +1,14 @@
-# Kansai Altan - Lab Yönetim Sistemi
+# Kansai Altan - Lab Analiz Yönetim Sistemi
 
-Analiz laboratuvarı için kapsamlı doküman ve numune yönetim sistemi.
+Analiz laboratuvarı için kapsamlı doküman ve numune yönetim sistemi - PostgreSQL ile production-ready!
+
+## 📚 Dokümantasyon
+
+- **🚀 [HIZLI_BASLANGIC.md](./HIZLI_BASLANGIC.md)** - 5 dakikada çalıştır
+- **📖 [KURULUM_REHBERI.md](./KURULUM_REHBERI.md)** - Detaylı kurulum ve IDE bağlantı rehberi
+- **🗄️ [DATABASE_SETUP.md](./DATABASE_SETUP.md)** - Veritabanı yönetim rehberi
+- **📋 [YAPILAN_DEGISIKLIKLER.md](./YAPILAN_DEGISIKLIKLER.md)** - Son değişiklikler ve özellikler
+- **🇹🇷 [README_TR.md](./README_TR.md)** - Türkçe proje dokümantasyonu
 
 ## Özellikler
 
@@ -36,42 +44,79 @@ Analiz laboratuvarı için kapsamlı doküman ve numune yönetim sistemi.
 
 - **Frontend**: Next.js 16 (App Router), React 19, TailwindCSS v4
 - **Backend**: Next.js API Routes (sunucu tarafı)
-- **Veritabanı**: JSON file-based (geliştirme için), PostgreSQL önerilir (production için)
+- **Veritabanı**: PostgreSQL (pg) - Production-ready!
+- **Auth**: JWT + bcrypt (güvenli şifre hashleme)
 - **Excel Parser**: xlsx kütüphanesi (sunucu tarafında)
 - **UI Components**: Shadcn/ui + Lucide icons
 - **Dil**: Türkçe
+
+## 🆕 Yeni Özellikler (PostgreSQL Geçişi)
+
+- ✅ **PostgreSQL Entegrasyonu**: JSON dosyalarından PostgreSQL'e tam migrasyon
+- ✅ **Kullanıcı Kaydı**: Kayıt sayfası ile yeni kullanıcı ekleme
+- ✅ **Kullanıcı Yönetimi**: Admin panelinde tam kullanıcı yönetimi
+- ✅ **Bildirim Sistemi**: Gerçek zamanlı bildirimler (erişim talepleri, onaylar)
+- ✅ **Güvenli Auth**: bcrypt ile hashlenmiş şifreler, JWT token'lar
+- ✅ **Rol Bazlı Bildirimler**: Analiz Lab üyelerine otomatik bildirim
+- ✅ **IDE Desteği**: pgAdmin, VS Code, WebStorm, DataGrip, DBeaver rehberleri
 
 ## Yerel Kurulum
 
 ### Gereksinimler
 - Node.js 18+ 
+- PostgreSQL 14+ (https://www.postgresql.org/download/)
 - pnpm (önerilir) veya npm
 
-### Adımlar
+### Hızlı Kurulum (5 Dakika)
 
-1. **Depoyu klonla veya ZIP indir**:
+**Detaylı rehber için: [HIZLI_BASLANGIC.md](./HIZLI_BASLANGIC.md)**
+
+1. **PostgreSQL Kur ve Veritabanı Oluştur**:
+```bash
+# pgAdmin 4 ile veya:
+psql -U postgres
+CREATE DATABASE kansai_lab;
+\q
+```
+
+2. **Projeyi Klonla**:
 ```bash
 git clone <repo-url>
 cd kansai-altan-lab
 ```
 
-2. **Bağımlılıkları yükle**:
+3. **Bağımlılıkları Yükle**:
 ```bash
-pnpm install
-# veya
 npm install
 ```
 
-3. **Geliştirme sunucusunu başlat**:
+4. **Environment Kurulumu**:
 ```bash
-pnpm dev
-# veya
+# Otomatik kurulum (önerilen):
+node scripts/setup-env.js
+
+# Veya manuel .env oluştur:
+echo "DATABASE_URL=postgresql://postgres:SIFRENIZ@localhost:5432/kansai_lab" > .env
+```
+
+5. **Veritabanı Şemasını Kur**:
+```bash
+# pgAdmin 4 Query Tool ile scripts/setup-database.sql'i çalıştır
+# Veya komut satırından:
+psql -U postgres -d kansai_lab -f scripts/setup-database.sql
+```
+
+6. **Bağlantıyı Test Et**:
+```bash
+node scripts/test-connection.js
+```
+
+7. **Uygulamayı Başlat**:
+```bash
 npm run dev
 ```
 
-4. **Tarayıcıda aç**: http://localhost:3000
-
-İlk çalıştırmada `data/` klasörü otomatik oluşturulur ve varsayılan kullanıcılar yüklenir.
+8. **Tarayıcıda Aç**: http://localhost:3000
 
 ## Varsayılan Kullanıcılar
 
