@@ -1,0 +1,35 @@
+[
+  {
+    "id": "c4b88aaa-1dc5-4bca-bce5-59b96ca74eac",
+    "email": "admin@kansaialtan.com",
+    "passwordHash": "$2a$10$UpJ6MoCPM5vUmds3hYOuku04R1WhVK2E7ms1PvlDCiZJquQiJ.qG6",
+    "name": "Admin Kullanici",
+    "lab": "admin",
+    "role": "admin",
+    "department": "Yonetim",
+    "createdAt": "2026-02-18T12:46:43.520Z",
+    "updatedAt": "2026-02-18T12:46:43.520Z"
+  },
+  {
+    "id": "36f0f9f8-035a-4548-b436-d4883a949c0e",
+    "email": "analiz@kansaialtan.com",
+    "passwordHash": "$2a$10$UpJ6MoCPM5vUmds3hYOuku04R1WhVK2E7ms1PvlDCiZJquQiJ.qG6",
+    "name": "Analiz Uzmani",
+    "lab": "analiz",
+    "role": "analiz_member",
+    "department": "Analiz Laboratuvari",
+    "createdAt": "2026-02-18T12:46:43.520Z",
+    "updatedAt": "2026-02-18T12:46:43.520Z"
+  },
+  {
+    "id": "06746bf2-4239-4887-a81a-bf67c6dfb650",
+    "email": "proses@kansaialtan.com",
+    "passwordHash": "$2a$10$UpJ6MoCPM5vUmds3hYOuku04R1WhVK2E7ms1PvlDCiZJquQiJ.qG6",
+    "name": "Proses Muhendisi",
+    "lab": "proses",
+    "role": "lab_member",
+    "department": "Proses Laboratuvari",
+    "createdAt": "2026-02-18T12:46:43.520Z",
+    "updatedAt": "2026-02-18T12:46:43.520Z"
+  }
+]

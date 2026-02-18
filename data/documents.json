@@ -1,0 +1,48 @@
+[
+  {
+    "id": "8e1f4de1-c285-47a4-be81-33fa40f78763",
+    "fileName": "AIS2.2026.0014 BS10PG2263BD Pas şüpheli numuneye ait analiz sonucu.xlsx",
+    "title": "ANALİZ LABORATUVARI İŞ İSTEĞİ YANITI",
+    "uploadedBy": "c4b88aaa-1dc5-4bca-bce5-59b96ca74eac",
+    "uploadedAt": "2026-02-18T12:47:27.585Z",
+    "status": "ready",
+    "notes": [],
+    "metadata": {
+      "sampleCount": 1,
+      "analysisTypes": [
+        "FTIR",
+        "SEM-EDX"
+      ]
+    }
+  },
+  {
+    "id": "c63ab0a2-01a0-4179-a313-f3e122b6bc09",
+    "fileName": "AIS2.2026.0017 KM25084-1000137086 partili numuneleri analiz sonucu.xlsx",
+    "title": "ANALİZ LABORATUVARI İŞ İSTEĞİ YANITI",
+    "uploadedBy": "c4b88aaa-1dc5-4bca-bce5-59b96ca74eac",
+    "uploadedAt": "2026-02-18T12:47:59.806Z",
+    "status": "ready",
+    "notes": [],
+    "metadata": {
+      "sampleCount": 4,
+      "analysisTypes": [
+        "FTIR Yorum"
+      ]
+    }
+  },
+  {
+    "id": "995983a9-3224-4919-9393-9fdf7a9f158b",
+    "fileName": "AIS2.2026.0025 0200971SS68 numuneleri analiz sonucu.xlsx",
+    "title": "ANALİZ LABORATUVARI İŞ İSTEĞİ YANITI",
+    "uploadedBy": "c4b88aaa-1dc5-4bca-bce5-59b96ca74eac",
+    "uploadedAt": "2026-02-18T12:48:07.996Z",
+    "status": "ready",
+    "notes": [],
+    "metadata": {
+      "sampleCount": 6,
+      "analysisTypes": [
+        "GPC Yorum"
+      ]
+    }
+  }
+]

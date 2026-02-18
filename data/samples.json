@@ -1,0 +1,193 @@
+[
+  {
+    "id": "87271b6f-e836-4c14-9bc3-2bbb6e9b80b9",
+    "documentId": "8e1f4de1-c285-47a4-be81-33fa40f78763",
+    "name": "BS10PG2263BD Bidon içerisindeki pas şüpheli numune",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "FTIR",
+            "value": ""
+          },
+          {
+            "parameter": "SEM-EDX",
+            "value": "BS10PG2263BD Numunesi Bidon İç Yüzeyi Kalıntısının 500 °C Kül Sonrası SEM-EDX Analizi"
+          }
+        ]
+      }
+    ],
+    "comment": "BS10PG2263BD numunesi, bidon iç yüzeyinde gözlemlenen sarı/turuncu renkli bölgelerden alınmıştır. Numunenin bir kısmı THF ile çöktürüldükten sonra sarı/turuncu renkli kısmın bağlayıcı faz ile birlikte film benzeri bir yapı şeklinde kaldığı gözlemlenmiştir. Bu kısım 120 °C’de kurutularak FTIR analizi yapılmıştır.\r\n\r\nBidon iç yüzeyindeki sarı/turuncu bölgelerden alınan ayrı bir numune ise herhangi bir çözücü işlemine tabi tutulmadan 500 °C’de kül haline getirilmiş ve elde edilen kül numunesi SEM-EDX analizi ile incelenmiştir.\r\n\r\nTHF ile çöktürülmüş ve 120 °C’de kurutulmuş sarı/turuncu üst faza ait FTIR analiz sonuçları incelendiğinde; elde edilen spektrumun ürün içerisindeki akrilik poliol bağlayıcı referansı ile uyumlu olduğu gözlemlenmiştir.\r\n\r\n500 °C’de kül haline getirilen numuneye ait SEM-EDX analiz sonuçları incelendiğinde; ürün formülasyonunda yer alan pigment ve dolgu bileşenleri (BaSO₄, TiO₂ vb.) dışında ilave bir elementel içerik tespit edilmemiştir. Pas olabileceğinden şüphelenilen Fe elementinin ise düşük seviyelerde bulunduğu tespit edilmiştir. Fe-oksit ağırlıklı bir pas kontaminasyonunu desteklememektedir.\r\n\r\nTüm analiz sonuçları birlikte değerlendirildiğinde; bidon iç yüzeyinde gözlemlenen sarı/turuncu kalıntının inorganik kökenli bir yabancı kontaminasyona işaret etmediği, organik faz (?) ile ilişkili bir kök neden olabileceğinden şüphelenilmektedir."
+  },
+  {
+    "id": "8062f64d-c546-46e7-91e6-a06729f1b5ac",
+    "documentId": "c63ab0a2-01a0-4179-a313-f3e122b6bc09",
+    "name": "KM25084-1000137086",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "FTIR Yorum",
+            "value": "FTIR spektrumları incelendiğinde;\r\n1640 cm⁻¹ (Amid I) / 1465 cm⁻¹ (–CH₂) → Amid wax yüzdesi\r\n1545 cm⁻¹ (Amid II) / 1465 cm⁻¹ (–CH₂) → Amid fonksiyonel yoğunluğu\r\n1640 cm⁻¹ (Amid I) / 720 cm⁻¹ (CH₂ rocking) → Amid kristalin wax oranı farklılıkları tespit edilmiştir.\r\n\r\nBu nedenle; amid wax–PE wax karışımı olan KM25084 (Superglide 904) numunelerinde karışım oranının farklı olduğu düşünülmektedir."
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "e795f3c7-2c8d-4661-a86b-c8abac1fc4cf",
+    "documentId": "c63ab0a2-01a0-4179-a313-f3e122b6bc09",
+    "name": "KM25084-1000137087",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "FTIR Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "2ba91f1b-c342-4f41-a904-113c3a390a2a",
+    "documentId": "c63ab0a2-01a0-4179-a313-f3e122b6bc09",
+    "name": "KM25084-Arge std-1",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "FTIR Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "e48606fb-c446-4842-ab29-0afab4843502",
+    "documentId": "c63ab0a2-01a0-4179-a313-f3e122b6bc09",
+    "name": "KM25084-Arge std-1",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "FTIR Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "c80b6e46-ac0e-440c-ba60-ea80d816ce1c",
+    "documentId": "995983a9-3224-4919-9393-9fdf7a9f158b",
+    "name": "0200971SS68-R260100129 Sorunlu",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "GPC Yorum",
+            "value": "GPC analiz sonuçları değerlendirildiğinde; 0200971SS68-R260100129 Sorunlu numunenin Mw , Mn, Mz ve Mz+1 değerlerinin referans ve arşiv numunelerine göre kısmen yüksek olduğu tespit edilmiştir."
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "3bba3be4-b85b-44b6-82a2-d1d2fdb559f4",
+    "documentId": "995983a9-3224-4919-9393-9fdf7a9f158b",
+    "name": "0200971SS68-R251000025 Arşiv Numunesi",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "GPC Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "6d3dcd19-bf48-4f5e-b433-3d550226e895",
+    "documentId": "995983a9-3224-4919-9393-9fdf7a9f158b",
+    "name": "0200971SS68-R251000164 Arşiv Numunesi",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "GPC Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "356fa7aa-377c-4730-908d-572e200090ff",
+    "documentId": "995983a9-3224-4919-9393-9fdf7a9f158b",
+    "name": "0200971SS68-R251100042 Arşiv Numunesi",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "GPC Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "387967d9-82b4-489f-8da7-5a17757e57a7",
+    "documentId": "995983a9-3224-4919-9393-9fdf7a9f158b",
+    "name": "0200971SS68-R251100104 Referans",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "GPC Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  },
+  {
+    "id": "be8d7008-d1ee-468a-83f7-cdcb4f8d30c4",
+    "documentId": "995983a9-3224-4919-9393-9fdf7a9f158b",
+    "name": "0200971SS68-R251200090 Referans",
+    "sections": [
+      {
+        "title": "",
+        "rows": [
+          {
+            "parameter": "GPC Yorum",
+            "value": ""
+          }
+        ]
+      }
+    ],
+    "comment": null
+  }
+]

@@ -1,0 +1,37 @@
+"use client";
+
+import { useAuth } from "@/lib/auth-context";
+import { Bell, Search } from "lucide-react";
+
+export function AppHeader({ title }: { title: string }) {
+  const { user } = useAuth();
+
+  return (
+    <header className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
+      <h1 className="text-lg font-semibold text-card-foreground tracking-tight">
+        {title}
+      </h1>
+      <div className="flex items-center gap-3">
+        <div className="relative hidden md:block">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Ara..."
+            className="pl-9 pr-4 py-1.5 text-sm rounded-md bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-56"
+          />
+        </div>
+        <button className="relative p-2 rounded-md hover:bg-secondary transition-colors">
+          <Bell className="w-4.5 h-4.5 text-muted-foreground" />
+        </button>
+        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
+          {user?.name
+            ?.split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase() || "?"}
+        </div>
+      </div>
+    </header>
+  );
+}
