@@ -65,6 +65,11 @@ export function NotificationBell() {
     // Navigate based on notification type
     if (notification.type === "access_request") {
       router.push("/dashboard/access-requests");
+    } else if (notification.type === "request_approved" && notification.relatedRequestId) {
+      // For approved requests, navigate to the document
+      router.push(`/dashboard/documents/${notification.relatedRequestId}`);
+    } else if (notification.type === "request_rejected") {
+      router.push("/dashboard/requests");
     }
   }
 

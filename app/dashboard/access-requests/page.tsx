@@ -4,22 +4,29 @@ import { AppHeader } from "@/components/app-header";
 import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import { useState } from "react";
-import Link from "next/link";
 import {
   Clock,
   CheckCircle2,
   XCircle,
   Filter,
-  Send,
   User,
   FileText,
   MessageSquare,
+  Mail,
+  Building,
+  CheckSquare,
+  Square,
 } from "lucide-react";
+import Link from "next/link";
+import { ROLE_LABELS } from "@/lib/types";
 
 interface AccessRequest {
   id: string;
   requesterId: string;
   requesterName: string;
+  requesterEmail: string;
+  requesterRole: string;
+  requesterDepartment: string;
   documentId: string;
   documentTitle: string;
   status: "pending" | "approved" | "rejected";
@@ -60,13 +67,14 @@ const statusConfig = {
   },
 };
 
-export default function RequestsPage() {
+export default function AccessRequestsPage() {
   const { user } = useAuth();
   const { data, mutate } = useSWR<{ requests: AccessRequest[] }>(
     "/api/requests",
     fetcher
   );
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("pending");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
   const [responseNote, setResponseNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -79,6 +87,50 @@ export default function RequestsPage() {
     filterStatus === "all"
       ? requests
       : requests.filter((r) => r.status === filterStatus);
+
+  const pendingRequests = filtered.filter((r) => r.status === "pending");
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === pendingRequests.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingRequests.map((r) => r.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkRespond = async (status: "approved" | "rejected") => {
+    if (selectedIds.size === 0) return;
+    if (
+      !confirm(
+        `${selectedIds.size} talebi ${status === "approved" ? "onaylamak" : "reddetmek"} istediginize emin misiniz?`
+      )
+    )
+      return;
+
+    setSubmitting(true);
+    await Promise.all(
+      Array.from(selectedIds).map((id) =>
+        fetch(`/api/requests/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, note: null }),
+        })
+      )
+    );
+    setSelectedIds(new Set());
+    setSubmitting(false);
+    mutate();
+  };
 
   const handleRespond = async (
     requestId: string,
@@ -100,30 +152,75 @@ export default function RequestsPage() {
 
   return (
     <div>
-      <AppHeader title="Talepler" />
+      <AppHeader title="Erisim Talepleri" />
       <div className="p-6 space-y-4">
         {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          {["all", "pending", "approved", "rejected"].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status)}
-              className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
-                filterStatus === status
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
-              {status === "all"
-                ? `Tumu (${requests.length})`
-                : status === "pending"
-                ? `Beklemede (${pendingCount})`
-                : status === "approved"
-                ? `Onaylandi (${requests.filter((r) => r.status === "approved").length})`
-                : `Reddedildi (${requests.filter((r) => r.status === "rejected").length})`}
-            </button>
-          ))}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            {["all", "pending", "approved", "rejected"].map((status) => (
+              <button
+                key={status}
+                onClick={() => {
+                  setFilterStatus(status);
+                  setSelectedIds(new Set());
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                  filterStatus === status
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                }`}
+              >
+                {status === "all"
+                  ? `Tumu (${requests.length})`
+                  : status === "pending"
+                  ? `Beklemede (${pendingCount})`
+                  : status === "approved"
+                  ? `Onaylandi (${requests.filter((r) => r.status === "approved").length})`
+                  : `Reddedildi (${requests.filter((r) => r.status === "rejected").length})`}
+              </button>
+            ))}
+          </div>
+
+          {/* Bulk actions */}
+          {canApprove && filterStatus === "pending" && pendingRequests.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleSelectAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
+              >
+                {selectedIds.size === pendingRequests.length ? (
+                  <CheckSquare className="w-3.5 h-3.5" />
+                ) : (
+                  <Square className="w-3.5 h-3.5" />
+                )}
+                {selectedIds.size === pendingRequests.length
+                  ? "Secimi Kaldir"
+                  : "Hepsini Sec"}
+              </button>
+
+              {selectedIds.size > 0 && (
+                <>
+                  <button
+                    onClick={() => handleBulkRespond("approved")}
+                    disabled={submitting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-success text-success-foreground hover:bg-success/90 disabled:opacity-50 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Secilenleri Onayla ({selectedIds.size})
+                  </button>
+                  <button
+                    onClick={() => handleBulkRespond("rejected")}
+                    disabled={submitting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Secilenleri Reddet ({selectedIds.size})
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Empty state */}
@@ -143,26 +240,43 @@ export default function RequestsPage() {
           {filtered.map((req) => {
             const config = statusConfig[req.status];
             const isResponding = respondingTo === req.id;
+            const isSelected = selectedIds.has(req.id);
 
             return (
               <div
                 key={req.id}
-                className={`p-4 rounded-lg bg-card border ${
+                className={`p-4 rounded-lg bg-card border transition-all ${
                   req.status === "pending" ? "border-warning/30" : "border-border"
-                }`}
+                } ${isSelected ? "ring-2 ring-primary" : ""}`}
               >
                 <div className="flex items-start gap-3">
-                  {/* Status dot */}
-                  <div
-                    className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${config.dot}`}
-                  />
+                  {/* Checkbox for pending requests */}
+                  {canApprove && req.status === "pending" && (
+                    <button
+                      onClick={() => toggleSelect(req.id)}
+                      className="mt-1 shrink-0"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Square className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+                      )}
+                    </button>
+                  )}
 
-                  <div className="flex-1 min-w-0 space-y-2">
-                    {/* Header */}
+                  {/* Status dot for non-pending */}
+                  {req.status !== "pending" && (
+                    <div
+                      className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${config.dot}`}
+                    />
+                  )}
+
+                  <div className="flex-1 min-w-0 space-y-3">
+                    {/* Header with user info */}
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium text-card-foreground">
+                          <span className="text-sm font-semibold text-card-foreground">
                             {req.requesterName}
                           </span>
                           <span
@@ -171,9 +285,30 @@ export default function RequestsPage() {
                             {config.label}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {new Date(req.createdAt).toLocaleString("tr-TR")}
-                        </p>
+
+                        {/* User metadata */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Mail className="w-3.5 h-3.5" />
+                            <span>{req.requesterEmail}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <User className="w-3.5 h-3.5" />
+                            <span>{ROLE_LABELS[req.requesterRole as keyof typeof ROLE_LABELS] || req.requesterRole}</span>
+                          </div>
+                          {req.requesterDepartment && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Building className="w-3.5 h-3.5" />
+                              <span>{req.requesterDepartment}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>
+                              {new Date(req.createdAt).toLocaleString("tr-TR")}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -190,17 +325,22 @@ export default function RequestsPage() {
 
                     {/* Requester note */}
                     {req.requesterNote && (
-                      <div className="flex items-start gap-2 p-2 rounded-md bg-secondary/50">
-                        <User className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                        <p className="text-xs text-muted-foreground">
-                          {req.requesterNote}
-                        </p>
+                      <div className="flex items-start gap-2 p-3 rounded-md bg-secondary/50 border border-border">
+                        <MessageSquare className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-foreground mb-1">
+                            Talep Notu:
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {req.requesterNote}
+                          </p>
+                        </div>
                       </div>
                     )}
 
                     {/* Responder info */}
                     {req.responderName && (
-                      <div className="flex items-start gap-2 p-2 rounded-md bg-primary/5">
+                      <div className="flex items-start gap-2 p-3 rounded-md bg-primary/5 border border-primary/20">
                         <MessageSquare className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
                         <div>
                           <span className="text-xs font-medium text-foreground">

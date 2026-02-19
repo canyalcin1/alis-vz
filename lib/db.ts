@@ -350,12 +350,25 @@ export async function createSamples(newSamples: Sample[]): Promise<void> {
 // Requests
 export async function getRequests(): Promise<AccessRequest[]> {
   const rows = await query<any>(
-    `SELECT id, requester_id as "requesterId", requester_name as "requesterName", 
-            document_id as "documentId", document_title as "documentTitle", status, 
-            requester_note as "requesterNote", responder_id as "responderId", 
-            responder_name as "responderName", responder_note as "responderNote", 
-            created_at as "createdAt", responded_at as "respondedAt" 
-     FROM access_requests ORDER BY created_at DESC`
+    `SELECT 
+      ar.id, 
+      ar.requester_id as "requesterId", 
+      ar.requester_name as "requesterName", 
+      u.email as "requesterEmail",
+      u.role as "requesterRole",
+      u.department as "requesterDepartment",
+      ar.document_id as "documentId", 
+      ar.document_title as "documentTitle", 
+      ar.status, 
+      ar.requester_note as "requesterNote", 
+      ar.responder_id as "responderId", 
+      ar.responder_name as "responderName", 
+      ar.responder_note as "responderNote", 
+      ar.created_at as "createdAt", 
+      ar.responded_at as "respondedAt" 
+    FROM access_requests ar
+    LEFT JOIN users u ON u.id = ar.requester_id
+    ORDER BY ar.created_at DESC`
   )
   return rows
 }
@@ -513,4 +526,27 @@ export async function getUnreadNotificationCount(userId: string): Promise<number
     [userId]
   )
   return parseInt(rows[0]?.count || "0", 10)
+}
+
+// Get approved documents for a user
+export async function getApprovedDocumentsForUser(userId: string): Promise<any[]> {
+  const rows = await query<any>(
+    `SELECT 
+      d.id,
+      d.file_name as "fileName",
+      d.title,
+      d.uploaded_by as "uploadedBy",
+      d.uploaded_at as "uploadedAt",
+      d.status,
+      d.metadata,
+      ar.responded_at as "approvedAt",
+      u.name as "responderName"
+    FROM analyses d
+    INNER JOIN access_requests ar ON ar.document_id = d.id
+    INNER JOIN users u ON u.id = ar.responder_id
+    WHERE ar.requester_id = $1 AND ar.status = 'approved'
+    ORDER BY ar.responded_at DESC`,
+    [userId]
+  )
+  return rows
 }
