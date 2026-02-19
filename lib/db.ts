@@ -538,10 +538,15 @@ export async function getApprovedDocumentsForUser(userId: string): Promise<any[]
       d.uploaded_by as "uploadedBy",
       d.uploaded_at as "uploadedAt",
       d.status,
-      d.metadata,
+      jsonb_build_object(
+        'sampleCount', d.sample_count,
+        'analysisTypes', COALESCE(d.analysis_types, ARRAY[]::TEXT[])
+      ) as metadata,
       ar.responded_at as "approvedAt",
-      u.name as "responderName"
-    FROM analyses d
+      u.name as "responderName",
+      ar.can_view_content as "canViewContent",
+      ar.can_view_document as "canViewDocument"
+    FROM documents d
     INNER JOIN access_requests ar ON ar.document_id = d.id
     INNER JOIN users u ON u.id = ar.responder_id
     WHERE ar.requester_id = $1 AND ar.status = 'approved'

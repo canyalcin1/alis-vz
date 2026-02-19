@@ -20,10 +20,12 @@ export interface Document {
   fileName: string
   title: string
   originalFileUrl?: string // Vercel Blob storage URL for original Excel file
+  originalFileSize?: number
   uploadedBy: string
   uploadedAt: string
   status: "processing" | "ready" | "error"
   notes: DocumentNote[]
+  images?: DocumentImage[]
   metadata: {
     sampleCount: number
     analysisTypes: string[]
@@ -67,8 +69,23 @@ export interface AccessRequest {
   responderId: string | null
   responderName: string | null
   responderNote: string | null
+  canViewContent: boolean
+  canViewDocument: boolean
+  canDownloadOriginal: boolean
   createdAt: string
   respondedAt: string | null
+}
+
+export interface DocumentImage {
+  id: string
+  documentId: string
+  fileUrl: string
+  fileName: string
+  mimeType: string
+  sizeBytes: number | null
+  extractedFrom: string | null
+  order: number
+  createdAt: string
 }
 
 export interface DocumentFootnote {

@@ -119,9 +119,11 @@ export default function MyDocumentsPage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-card-foreground truncate">
-                    {doc.title}
-                  </h3>
+                  <Link href={`/dashboard/documents/${doc.id}`}>
+                    <h3 className="text-sm font-semibold text-foreground truncate hover:text-primary cursor-pointer transition-colors">
+                      {doc.fileName}
+                    </h3>
+                  </Link>
                   <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
                 </div>
                 <div className="flex items-center gap-3 mt-1 flex-wrap">

@@ -34,14 +34,38 @@ export default function DocumentsPage() {
   const canDelete = user?.role === "admin" || user?.role === "analiz_member";
 
   const docs = data?.documents || [];
-  const filtered = docs.filter(
-    (d) =>
-      d.title.toLowerCase().includes(search.toLowerCase()) ||
-      d.fileName.toLowerCase().includes(search.toLowerCase()) ||
-      d.metadata.analysisTypes.some((t) =>
-        t.toLowerCase().includes(search.toLowerCase())
-      )
-  );
+  
+  // Fuzzy search helper - checks if search terms appear in text (order-independent, partial match)
+  const fuzzyMatch = (text: string, searchTerm: string): boolean => {
+    const textLower = text.toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Direct substring match
+    if (textLower.includes(searchLower)) return true;
+    
+    // Split search into words and check if all words appear (in any order)
+    const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0);
+    if (searchWords.every(word => textLower.includes(word))) return true;
+    
+    // Character-by-character fuzzy match (allows for typos)
+    let searchIndex = 0;
+    for (let i = 0; i < textLower.length && searchIndex < searchLower.length; i++) {
+      if (textLower[i] === searchLower[searchIndex]) {
+        searchIndex++;
+      }
+    }
+    return searchIndex === searchLower.length;
+  };
+  
+  const filtered = docs.filter((d) => {
+    if (!search.trim()) return true;
+    
+    return (
+      fuzzyMatch(d.title, search) ||
+      fuzzyMatch(d.fileName, search) ||
+      d.metadata.analysisTypes.some((t) => fuzzyMatch(t, search))
+    );
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu dokumani silmek istediginize emin misiniz?")) return;
@@ -102,9 +126,11 @@ export default function DocumentsPage() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-card-foreground truncate">
-                  {doc.title}
-                </h3>
+                <Link href={`/dashboard/documents/${doc.id}`}>
+                  <h3 className="text-sm font-semibold text-foreground truncate hover:text-primary cursor-pointer transition-colors">
+                    {doc.fileName}
+                  </h3>
+                </Link>
                 <div className="flex items-center gap-3 mt-1">
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Calendar className="w-3 h-3" />
