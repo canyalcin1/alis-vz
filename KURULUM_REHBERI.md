@@ -19,11 +19,12 @@ Bu rehber, sistemi fabrika içindeki SQL Server'a entegre etmeden önce local Po
 ### Windows İçin:
 
 1. **PostgreSQL İndir**: https://www.postgresql.org/download/windows/
+
    - PostgreSQL 16.x sürümünü indirin
    - Kurulum sırasında şifre belirleyin (örn: `postgres123`)
    - Port: 5432 (varsayılan)
-
 2. **Kurulum Tamamlandıktan Sonra**:
+
    - pgAdmin 4 otomatik olarak kurulacaktır
    - pgAdmin'i açın ve belirlediğiniz şifre ile giriş yapın
 
@@ -121,6 +122,7 @@ WHERE table_schema = 'public';
 ```
 
 Görmeniz gereken tablolar:
+
 - users
 - analyses
 - access_requests
@@ -133,6 +135,7 @@ SELECT id, name, email, role FROM users;
 ```
 
 3 kullanıcı görmelisiniz:
+
 - admin@kansaialtan.com (Admin)
 - analiz@kansaialtan.com (Analiz Lab. Üyesi)
 - lab@kansaialtan.com (Laboratuvar Üyesi)
@@ -146,6 +149,7 @@ npm run dev
 Tarayıcıda açın: http://localhost:3000
 
 **Test için giriş yapın**:
+
 - Email: `admin@kansaialtan.com`
 - Şifre: `lab123456`
 
@@ -206,10 +210,12 @@ Tarayıcıda açın: http://localhost:3000
 ### pgAdmin 4 İle
 
 **Tabloları Görüntüleme**:
+
 1. Sol panel: **kansai_lab** > **Schemas** > **public** > **Tables**
 2. Herhangi bir tabloya sağ tık > **View/Edit Data** > **All Rows**
 
 **Query Çalıştırma**:
+
 1. **Tools** > **Query Tool**
 2. SQL yazın ve **F5** ile çalıştırın
 
@@ -364,6 +370,7 @@ pool.query('SELECT NOW()', (err, res) => {
 ```
 
 Çalıştır:
+
 ```bash
 node test-db.js
 ```
@@ -382,6 +389,7 @@ node test-db.js
 ## 📞 Destek
 
 Herhangi bir sorun yaşarsanız:
+
 1. `DATABASE_SETUP.md` dosyasını inceleyin
 2. `README_TR.md` dosyasına bakın
 3. PostgreSQL loglarını kontrol edin: `C:\Program Files\PostgreSQL\16\data\log\`

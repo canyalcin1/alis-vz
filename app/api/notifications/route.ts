@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { getSession } from "@/lib/auth"; // Make sure this matches your actual auth import
+import { getNotificationsByUserId, markNotificationAsRead } from "@/lib/db";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyAuth(request);
+    const user = await getSession();
     if (!user) {
       return NextResponse.json({ error: "Yetkisiz erişim" }, { status: 401 });
     }
 
-    const notifications = await db.getNotifications(user.id);
+    const notifications = await getNotificationsByUserId(user.id);
     return NextResponse.json(notifications);
   } catch (error) {
     console.error("[v0] Error fetching notifications:", error);
@@ -22,14 +22,14 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await verifyAuth(request);
+    const user = await getSession();
     if (!user) {
       return NextResponse.json({ error: "Yetkisiz erişim" }, { status: 401 });
     }
 
     const { notificationId } = await request.json();
 
-    await db.markNotificationAsRead(notificationId, user.id);
+    await markNotificationAsRead(notificationId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
