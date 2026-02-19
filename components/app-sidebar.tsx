@@ -37,6 +37,12 @@ const navItems = [
     roles: ["admin", "analiz_member", "lab_member"],
   },
   {
+    label: "Dokumanlarim",
+    href: "/dashboard/my-documents",
+    icon: FileText,
+    roles: ["lab_member"],
+  },
+  {
     label: "Talepler",
     href: "/dashboard/requests",
     icon: ClipboardList,

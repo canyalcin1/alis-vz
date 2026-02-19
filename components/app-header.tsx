@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth-context";
 import { NotificationBell } from "@/components/notification-bell";
+import { UserProfileDropdown } from "@/components/user-profile-dropdown";
 import { Search } from "lucide-react";
 
 export function AppHeader({ title }: { title: string }) {
@@ -22,14 +23,7 @@ export function AppHeader({ title }: { title: string }) {
           />
         </div>
         <NotificationBell />
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-          {user?.name
-            ?.split(" ")
-            .map((n) => n[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase() || "?"}
-        </div>
+        <UserProfileDropdown />
       </div>
     </header>
   );
