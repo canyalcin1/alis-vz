@@ -110,10 +110,10 @@ export default function DocumentDetailPage() {
     );
   }
 
-  if (!data) {
+  if (!data || !data.document) {
     return (
       <div>
-        <AppHeader title="Dokuman" />
+        <AppHeader title="Doküman Yükleniyor..." />
         <div className="flex items-center justify-center h-96">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
