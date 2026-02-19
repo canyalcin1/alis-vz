@@ -1,0 +1,323 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    KANSAİ ALTAN LAB ANALİZ SİSTEMİ                          ║
+║                    POSTGRESQL ENTEGRASYONU TAMAMLANDI                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 YAPILAN DEĞİŞİKLİKLER:
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ 1. JSON DOSYALARINDAN POSTGRESQL'E TAM MİGRASYON
+   - Artık data/users.json, data/analyses.json kullanmıyoruz
+   - Tüm veriler PostgreSQL veritabanında saklanıyor
+   - Production-ready, ölçeklenebilir yapı
+
+✅ 2. KAYIT (REGISTER) SAYFASI EKLENDİ
+   - /register adresinden yeni kullanıcı kaydı
+   - Departman seçimi (Analiz Lab Üyesi / Laboratuvar Üyesi)
+   - Güvenli şifre hashleme (bcrypt)
+
+✅ 3. KULLANICI YÖNETİMİ (ADMİN PANELİ)
+   - Admin > Profile sayfasında "User Management" bölümü
+   - Kullanıcıları listeleme, düzenleme, silme
+   - Rol değiştirme, şifre sıfırlama
+
+✅ 4. BİLDİRİM SİSTEMİ
+   - Header'da bildirim zili ikonu (🔔)
+   - Yeni analiz eklendiğinde Analiz Lab üyelerine bildirim
+   - Erişim talebi durumu değiştiğinde kullanıcıya bildirim
+   - Gerçek zamanlı bildirim güncellemeleri
+
+✅ 5. TÜRKÇE DOKÜMANTASYON
+   - 6 adet kapsamlı Türkçe rehber hazırlandı
+   - PostgreSQL kurulum adımları
+   - IDE bağlantı rehberleri (pgAdmin, VS Code, WebStorm, DBeaver)
+   - SQL Server entegrasyon rehberi
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📚 DOKÜMANTASYON REHBERİ:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. HIZLI_BASLANGIC.md
+   → 5 dakikada sistemi çalıştırmak için
+   → Sadece temel adımlar, hızlı kurulum
+
+2. KURULUM_REHBERI.md  
+   → Detaylı kurulum rehberi
+   → PostgreSQL kurulumu (Windows için)
+   → IDE bağlantı ayarları (pgAdmin, VS Code, WebStorm, DataGrip, DBeaver)
+   → Fabrika SQL Server'a entegrasyon
+
+3. VERITABANI_GORUNTULEME.md
+   → Veritabanını IDE'lerden nasıl görüntülersiniz
+   → Her IDE için ekran görüntülü adımlar
+   → Örnek SQL sorguları (kullanıcı yönetimi, istatistikler)
+
+4. DATABASE_SETUP.md
+   → Veritabanı yapısı ve şema detayları
+   → Tablolar, ilişkiler, trigger'lar
+   → Backup/restore işlemleri
+
+5. YAPILAN_DEGISIKLIKLER.md
+   → Tüm değişikliklerin detaylı listesi
+   → Yeni özellikler, teknik detaylar
+
+6. README_TR.md
+   → Proje hakkında genel bilgiler
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🚀 HIZLI KURULUM (5 DAKİKA):
+═══════════════════════════════════════════════════════════════════════════════
+
+ADIM 1: POSTGRESQL KUR
+----------------------
+Windows: https://www.postgresql.org/download/windows/
+- Kurulum sırasında şifre belirle (örn: postgres123)
+- Port: 5432 (varsayılan)
+
+ADIM 2: VERİTABANI OLUŞTUR
+---------------------------
+pgAdmin 4'ü aç (PostgreSQL ile gelir):
+1. Databases > Sağ tık > Create > Database
+2. Ad: kansai_lab
+3. Save
+
+ADIM 3: PROJE KURULUMU
+-----------------------
+npm install
+
+ADIM 4: ENVIRONMENT AYARI
+--------------------------
+node scripts/setup-env.js
+(veya manuel: .env dosyası oluştur ve DATABASE_URL ekle)
+
+ADIM 5: VERİTABANI ŞEMASI
+--------------------------
+pgAdmin 4 Query Tool'da scripts/setup-database.sql dosyasını çalıştır
+(veya: psql -U postgres -d kansai_lab -f scripts/setup-database.sql)
+
+ADIM 6: BAĞLANTIYI TEST ET
+---------------------------
+node scripts/test-connection.js
+(✅ 3 kullanıcı görmelisiniz)
+
+ADIM 7: UYGULAMAYI BAŞLAT
+--------------------------
+npm run dev
+http://localhost:3000
+
+GİRİŞ BİLGİLERİ:
+Email: admin@kansaialtan.com
+Şifre: lab123456
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🔗 VERİTABANINI IDE İLE GÖRÜNTÜLEME:
+═══════════════════════════════════════════════════════════════════════════════
+
+SEÇENEKLER:
+
+1. pgAdmin 4 (PostgreSQL ile gelir) ⭐ ÖNERİLEN BAŞLANGIÇ İÇİN
+   - Servers > Register > Server
+   - Host: localhost, Port: 5432, DB: kansai_lab
+   - User: postgres, Password: [şifreniz]
+
+2. DBeaver Community (Ücretsiz) ⭐ PROFESYONEL KULLANIM İÇİN
+   - https://dbeaver.io/download/
+   - Database > New Connection > PostgreSQL
+   - En güçlü ücretsiz tool
+
+3. VS Code + PostgreSQL Extension ⭐ VS CODE KULLANIYORSANIZ
+   - Extensions'dan "PostgreSQL" ara (Chris Kolkman)
+   - PostgreSQL panelinden Add Connection
+
+4. WebStorm / IntelliJ IDEA (JetBrains)
+   - Database Tool Window (Alt+1)
+   - Data Source > PostgreSQL
+
+Detaylı rehber: VERITABANI_GORUNTULEME.md
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 YENİ ÖZELLİKLER:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. KULLANICI KAYDI (/register)
+   - İsim, email, şifre girişi
+   - Departman seçimi (Analiz Lab / Lab Üyesi)
+   - Otomatik bcrypt şifre hashleme
+
+2. KULLANICI YÖNETİMİ (Admin > Profile)
+   - Sadece Admin görebilir
+   - Kullanıcı listeleme, düzenleme, silme
+   - Rol değiştirme (Admin, Analiz Lab, Lab Member)
+   - Şifre sıfırlama
+
+3. BİLDİRİM SİSTEMİ
+   - Header'da zil ikonu (🔔)
+   - Okunmamış bildirim sayacı
+   - Gerçek zamanlı güncelleme (30 saniyede bir)
+   - Bildirim tipleri:
+     * Yeni analiz eklendiğinde → Analiz Lab üyelerine
+     * Erişim talebi oluşturulduğunda → Analiz Lab üyelerine
+     * Talep onaylandı/reddedildi → Talep sahibine
+
+4. GÜVENLİK İYİLEŞTİRMELERİ
+   - bcrypt ile hashlenmiş şifreler (10 rounds)
+   - SQL injection koruması (parametreli sorgular)
+   - JWT tabanlı kimlik doğrulama
+   - Rol bazlı yetkilendirme
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🗄️ VERİTABANI YAPISI:
+═══════════════════════════════════════════════════════════════════════════════
+
+TABLOLAR:
+
+1. users
+   - Kullanıcı bilgileri (id, name, email, password, role, department)
+   - Şifreler bcrypt ile hashlenmiş
+   - Roller: admin, analiz_member, lab_member
+
+2. analyses
+   - Lab analiz kayıtları (id, numune_adi, user_id, analiz_data, vb.)
+   - Foreign key: user_id → users.id
+
+3. access_requests
+   - Erişim talepleri (id, user_id, analysis_id, status, reason)
+   - Status: pending, approved, rejected
+   - Foreign keys: user_id → users.id, analysis_id → analyses.id
+
+4. notifications
+   - Kullanıcı bildirimleri (id, user_id, type, title, message, is_read)
+   - Otomatik trigger'lar ile oluşturuluyor
+   - Foreign key: user_id → users.id
+
+TRIGGER'LAR:
+- notify_analysis_lab_on_new_analysis: Yeni analiz eklendiğinde bildirim
+- notify_on_request_status_change: Talep durumu değiştiğinde bildirim
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🏭 FABRİKA SQL SERVER'A ENTEGRASYON:
+═══════════════════════════════════════════════════════════════════════════════
+
+Test tamamlandıktan sonra fabrika SQL Server'ınıza entegre etmek için:
+
+1. SQL Server driver ekle:
+   npm install mssql @types/mssql
+
+2. .env dosyasını güncelle:
+   DB_SERVER=192.168.1.100
+   DB_DATABASE=KansaiLabAnalysis
+   DB_USER=lab_user
+   DB_PASSWORD=lab_password
+   DB_PORT=1433
+
+3. lib/db.ts dosyasını SQL Server için uyarla
+   (pg yerine mssql kullan)
+
+4. SQL script'ini SQL Server syntax'ına dönüştür:
+   - SERIAL → INT IDENTITY(1,1)
+   - TEXT → NVARCHAR(MAX)
+   - TIMESTAMP → DATETIME2
+   - gen_random_uuid() → NEWID()
+
+Detaylı rehber: KURULUM_REHBERI.md (sayfa sonunda)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🔧 HELPER SCRIPT'LER:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. scripts/setup-env.js
+   → .env dosyasını interaktif oluşturur
+   → Kullanım: node scripts/setup-env.js
+
+2. scripts/test-connection.js
+   → Veritabanı bağlantısını test eder
+   → Tablo sayısını ve kullanıcıları listeler
+   → Kullanım: node scripts/test-connection.js
+
+3. scripts/setup-database.sql
+   → Veritabanı şemasını oluşturur
+   → 3 demo kullanıcı ekler
+   → pgAdmin Query Tool veya psql ile çalıştırın
+
+
+═══════════════════════════════════════════════════════════════════════════════
+✅ TEST ADIMLARI:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Bağlantıyı test et:
+   node scripts/test-connection.js
+
+2. Uygulamayı başlat:
+   npm run dev
+
+3. Login yap:
+   Email: admin@kansaialtan.com
+   Şifre: lab123456
+
+4. Test et:
+   ✅ Dashboard'u gör
+   ✅ Yeni analiz ekle
+   ✅ Profile > User Management gör
+   ✅ Yeni kullanıcı ekle/düzenle
+   ✅ Header'daki bildirim ziline tıkla
+   ✅ /register sayfasından yeni kayıt oluştur
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📞 SORUN GİDERME:
+═══════════════════════════════════════════════════════════════════════════════
+
+HATA: "password authentication failed"
+ÇÖZÜM: .env dosyasındaki şifreyi kontrol et
+       psql -U postgres
+       \password postgres
+
+HATA: "database kansai_lab does not exist"
+ÇÖZÜM: Veritabanını oluştur
+       psql -U postgres
+       CREATE DATABASE kansai_lab;
+
+HATA: "relation users does not exist"
+ÇÖZÜM: SQL script'ini çalıştır
+       psql -U postgres -d kansai_lab -f scripts/setup-database.sql
+
+HATA: Bağlantı kuramıyorum
+ÇÖZÜM: 1. PostgreSQL servisi çalışıyor mu? (Görev Yöneticisi > Hizmetler)
+       2. Port 5432 kullanılıyor mu?
+       3. Şifre doğru mu?
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🎉 ÖZET:
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ JSON dosyalarından PostgreSQL'e tam migrasyon tamamlandı
+✅ Kayıt sayfası eklendi (/register)
+✅ Admin paneline kullanıcı yönetimi eklendi
+✅ Bildirim sistemi entegre edildi (header'da zil ikonu)
+✅ 6 adet Türkçe dokümantasyon hazırlandı
+✅ PostgreSQL/SQL Server entegrasyon rehberi oluşturuldu
+✅ IDE bağlantı rehberleri eklendi (pgAdmin, VS Code, WebStorm, DBeaver)
+
+SİSTEM PRODUCTION-READY! 🚀
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📚 İLK OKUMAYA BAŞLAYACAĞINIZ DOSYA:
+═══════════════════════════════════════════════════════════════════════════════
+
+→ HIZLI_BASLANGIC.md (5 dakikada çalıştır)
+
+Sonra:
+→ VERITABANI_GORUNTULEME.md (IDE ile veritabanı görüntüleme)
+→ KURULUM_REHBERI.md (detaylı kurulum ve SQL Server entegrasyonu)
+
+
+Başarılar! 🎯

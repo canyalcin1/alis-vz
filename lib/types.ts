@@ -97,3 +97,14 @@ export const ROLE_LABELS: Record<Role, string> = {
   analiz_member: "Analiz Lab. Uyesi",
   lab_member: "Laboratuvar Uyesi",
 }
+
+export interface Notification {
+  id: string
+  userId: string
+  type: "access_request" | "request_approved" | "request_rejected"
+  title: string
+  message: string
+  relatedRequestId: string | null
+  isRead: boolean
+  createdAt: string
+}

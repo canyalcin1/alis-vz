@@ -139,9 +139,15 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <p className="text-xs text-muted-foreground">
               Demo: admin@kansaialtan.com / lab123456
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Hesabiniz yok mu?{" "}
+              <a href="/register" className="text-primary hover:underline font-medium">
+                Kayit Ol
+              </a>
             </p>
           </div>
         </div>

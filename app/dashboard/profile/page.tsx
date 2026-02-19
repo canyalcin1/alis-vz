@@ -2,6 +2,7 @@
 
 import { AppHeader } from "@/components/app-header";
 import { useAuth } from "@/lib/auth-context";
+import { UserManagement } from "@/components/user-management";
 import { User, Mail, Building, Shield } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -48,7 +49,7 @@ export default function ProfilePage() {
   return (
     <div>
       <AppHeader title="Profil" />
-      <div className="p-6 max-w-xl mx-auto space-y-6">
+      <div className="p-6 max-w-4xl mx-auto space-y-8">
         {/* Avatar card */}
         <div className="flex items-center gap-4 p-6 rounded-lg bg-card border border-border">
           <div className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold">
@@ -121,6 +122,13 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {/* User Management for Admins */}
+        {user.role === "admin" && (
+          <div className="pt-4">
+            <UserManagement />
+          </div>
+        )}
       </div>
     </div>
   );

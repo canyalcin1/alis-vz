@@ -1,7 +1,8 @@
 "use client";
 
 import { useAuth } from "@/lib/auth-context";
-import { Bell, Search } from "lucide-react";
+import { NotificationBell } from "@/components/notification-bell";
+import { Search } from "lucide-react";
 
 export function AppHeader({ title }: { title: string }) {
   const { user } = useAuth();
@@ -20,9 +21,7 @@ export function AppHeader({ title }: { title: string }) {
             className="pl-9 pr-4 py-1.5 text-sm rounded-md bg-secondary border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring w-56"
           />
         </div>
-        <button className="relative p-2 rounded-md hover:bg-secondary transition-colors">
-          <Bell className="w-4.5 h-4.5 text-muted-foreground" />
-        </button>
+        <NotificationBell />
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-xs font-semibold">
           {user?.name
             ?.split(" ")
