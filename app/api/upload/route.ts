@@ -12,30 +12,28 @@ import type { Document, Sample, DocumentFootnote } from "@/lib/types";
 export async function POST(req: Request) {
   const user = await getSession();
   if (!user || !canUpload(user.role)) {
-    return NextResponse.json(
-      { error: "Yetkisiz erisim." },
-      { status: 403 }
-    );
+    return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 403 });
   }
 
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     if (!file) {
-      return NextResponse.json(
-        { error: "Dosya bulunamadi." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Dosya bulunamadı." }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const parsed = parseExcelBuffer(buffer);
-
+    const parsed = await parseExcelBuffer(buffer);
     const docId = uuid();
+
+    // DOSYAYI BASE64 FORMATINA ÇEVİRİYORUZ (DB'de saklamak için)
+    const base64FileContent = buffer.toString("base64");
+
     const doc: Document = {
       id: docId,
       fileName: file.name,
-      title: parsed.title || file.name.replace(/\.[^.]+$/, ""),
+      title: file.name,
+      fileContent: base64FileContent, // URL yerine dosyanın kendisini gömüyoruz
       uploadedBy: user.id,
       uploadedAt: new Date().toISOString(),
       status: "ready",
@@ -48,7 +46,7 @@ export async function POST(req: Request) {
 
     await createDocument(doc);
 
-    // Create samples
+    // Numuneler
     const samples: Sample[] = parsed.samples.map((s) => ({
       id: uuid(),
       documentId: docId,
@@ -61,7 +59,7 @@ export async function POST(req: Request) {
       await createSamples(samples);
     }
 
-    // Create footnotes
+    // Dipnotlar
     if (parsed.footnotes.length > 0) {
       const footnotes: DocumentFootnote[] = parsed.footnotes.map((text, i) => ({
         id: uuid(),
@@ -73,15 +71,12 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      document: doc,
+      document: { id: doc.id, title: doc.title, fileName: doc.fileName }, // Sadece gerekenleri dön, frontend şişmesin
       sampleCount: samples.length,
       footnoteCount: parsed.footnotes.length,
     });
   } catch (err) {
     console.error("Upload error:", err);
-    return NextResponse.json(
-      { error: "Dosya islenirken hata olustu." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Dosya işlenirken hata oluştu." }, { status: 500 });
   }
 }

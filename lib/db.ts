@@ -133,7 +133,6 @@ export async function getDocuments(): Promise<Document[]> {
       d.id, 
       d.file_name as "fileName", 
       d.title, 
-      d.original_file_url as "originalFileUrl", 
       d.uploaded_by as "uploadedBy", 
       d.uploaded_at as "uploadedAt", 
       d.status,
@@ -156,7 +155,7 @@ export async function getDocuments(): Promise<Document[]> {
     GROUP BY d.id
     ORDER BY d.uploaded_at DESC`
   )
-  
+
   return rows.map((row) => ({
     ...row,
     metadata: {
@@ -172,7 +171,6 @@ export async function getDocumentById(id: string): Promise<Document | undefined>
       d.id, 
       d.file_name as "fileName", 
       d.title, 
-      d.original_file_url as "originalFileUrl", 
       d.uploaded_by as "uploadedBy", 
       d.uploaded_at as "uploadedAt", 
       d.status,
@@ -196,9 +194,9 @@ export async function getDocumentById(id: string): Promise<Document | undefined>
     GROUP BY d.id`,
     [id]
   )
-  
+
   if (rows.length === 0) return undefined
-  
+
   const row = rows[0]
   return {
     ...row,
@@ -209,17 +207,26 @@ export async function getDocumentById(id: string): Promise<Document | undefined>
   }
 }
 
+// YENİ: Sadece indirme işlemi yapıldığında büyük dosya verisini çeken fonksiyon
+export async function getDocumentFileContent(id: string): Promise<{ fileContent: string; fileName: string } | undefined> {
+  const rows = await query<any>(
+    `SELECT file_content as "fileContent", file_name as "fileName" FROM documents WHERE id = $1`,
+    [id]
+  )
+  return rows[0]
+}
+
 export async function createDocument(doc: Document): Promise<Document> {
   const rows = await query<any>(
-    `INSERT INTO documents (id, file_name, title, original_file_url, uploaded_by, uploaded_at, status, sample_count, analysis_types) 
+    `INSERT INTO documents (id, file_name, title, file_content, uploaded_by, uploaded_at, status, sample_count, analysis_types) 
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
-     RETURNING id, file_name as "fileName", title, original_file_url as "originalFileUrl", uploaded_by as "uploadedBy", 
+     RETURNING id, file_name as "fileName", title, uploaded_by as "uploadedBy", 
                uploaded_at as "uploadedAt", status, sample_count as "sampleCount", analysis_types as "analysisTypes"`,
     [
       doc.id,
       doc.fileName,
       doc.title,
-      doc.originalFileUrl || null,
+      doc.fileContent || null, // Base64 verisi buraya gidiyor
       doc.uploadedBy,
       doc.uploadedAt,
       doc.status,
@@ -274,14 +281,14 @@ export async function updateDocument(
   const rows = await query<any>(
     `UPDATE documents SET ${fields.join(", ")} 
      WHERE id = $${paramIndex} 
-     RETURNING id, file_name as "fileName", title, original_file_url as "originalFileUrl", 
+     RETURNING id, file_name as "fileName", title, 
                uploaded_by as "uploadedBy", uploaded_at as "uploadedAt", status, 
                sample_count as "sampleCount", analysis_types as "analysisTypes"`,
     values
   )
-  
+
   if (rows.length === 0) return undefined
-  
+
   return {
     ...rows[0],
     notes: [],

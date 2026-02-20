@@ -19,7 +19,7 @@ export interface Document {
   id: string
   fileName: string
   title: string
-  originalFileUrl?: string // Vercel Blob storage URL for original Excel file
+  fileContent?: string; // Vercel Blob storage URL for original Excel file
   uploadedBy: string
   uploadedAt: string
   status: "processing" | "ready" | "error"
@@ -27,6 +27,7 @@ export interface Document {
   metadata: {
     sampleCount: number
     analysisTypes: string[]
+
   }
 }
 

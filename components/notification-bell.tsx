@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react"; // CheckCheck eklendi
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -22,12 +22,12 @@ export function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, []);
 
   async function fetchNotifications() {
+    // ... mevcut fetchNotifications kodun aynı kalıyor
     try {
       const response = await fetch("/api/notifications");
       if (response.ok) {
@@ -41,6 +41,7 @@ export function NotificationBell() {
   }
 
   async function markAsRead(notificationId: string) {
+    // ... mevcut markAsRead kodun aynı kalıyor
     try {
       const response = await fetch("/api/notifications", {
         method: "PATCH",
@@ -49,7 +50,7 @@ export function NotificationBell() {
       });
 
       if (response.ok) {
-        setNotifications(notifications.map(n => 
+        setNotifications(notifications.map(n =>
           n.id === notificationId ? { ...n, isRead: true } : n
         ));
         setUnreadCount(Math.max(0, unreadCount - 1));
@@ -59,14 +60,32 @@ export function NotificationBell() {
     }
   }
 
+  // YENİ: Tümünü Okundu İşaretleme Fonksiyonu
+  async function markAllAsRead() {
+    if (unreadCount === 0) return;
+
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAll: true }),
+      });
+
+      if (response.ok) {
+        setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+      }
+    } catch (error) {
+      console.error("[v0] Error marking all notifications as read:", error);
+    }
+  }
+
   function handleNotificationClick(notification: Notification) {
     markAsRead(notification.id);
-    
-    // Navigate based on notification type
+
     if (notification.type === "access_request") {
       router.push("/dashboard/access-requests");
     } else if (notification.type === "request_approved" && notification.relatedRequestId) {
-      // For approved requests, navigate to the document
       router.push(`/dashboard/documents/${notification.relatedRequestId}`);
     } else if (notification.type === "request_rejected") {
       router.push("/dashboard/requests");
@@ -74,6 +93,7 @@ export function NotificationBell() {
   }
 
   const formatDate = (dateString: string) => {
+    // ... mevcut formatDate kodun aynı kalıyor
     const date = new Date(dateString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
@@ -94,8 +114,8 @@ export function NotificationBell() {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
             >
               {unreadCount > 9 ? "9+" : unreadCount}
@@ -104,7 +124,26 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Bildirimler</DropdownMenuLabel>
+
+        {/* YENİ: Başlık ve Tümünü Okundu İşaretle Butonu */}
+        <div className="flex items-center justify-between px-2 py-2">
+          <DropdownMenuLabel className="p-0">Bildirimler</DropdownMenuLabel>
+          {unreadCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-1 text-xs text-muted-foreground hover:text-primary"
+              onClick={(e) => {
+                e.preventDefault(); // Menünün hemen kapanmasını engeller
+                markAllAsRead();
+              }}
+            >
+              <CheckCheck className="h-4 w-4 mr-1" />
+              Tümünü okundu işaretle
+            </Button>
+          )}
+        </div>
+
         <DropdownMenuSeparator />
         {notifications.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground text-center">
@@ -141,7 +180,7 @@ export function NotificationBell() {
         {notifications.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="text-center text-sm text-primary cursor-pointer justify-center"
               onClick={() => router.push("/dashboard/notifications")}
             >

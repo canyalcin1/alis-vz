@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { AppHeader } from "@/components/app-header";
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface UploadResult {
@@ -21,73 +21,110 @@ export default function UploadPage() {
   const router = useRouter();
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<UploadResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Tekil state'leri dizilere (array) çevirdik
+  const [results, setResults] = useState<UploadResult[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const canUpload = user?.role === "admin" || user?.role === "analiz_member";
 
-  const handleFile = useCallback((file: File) => {
+  const handleFiles = useCallback((files: File[]) => {
     const validTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/vnd.ms-excel",
       "text/csv",
     ];
-    const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!validTypes.includes(file.type) && !["xlsx", "xls", "csv"].includes(ext || "")) {
-      setError("Sadece Excel (.xlsx, .xls) ve CSV dosyalari kabul edilir.");
-      return;
+
+    const newFiles: File[] = [];
+    const newErrors: string[] = [];
+
+    files.forEach((file) => {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      if (!validTypes.includes(file.type) && !["xlsx", "xls", "csv"].includes(ext || "")) {
+        newErrors.push(`"${file.name}" desteklenmeyen bir format.`);
+      } else {
+        // Aynı dosyanın tekrar eklenmesini önlemek için basit bir kontrol
+        if (!selectedFiles.some(f => f.name === file.name)) {
+          newFiles.push(file);
+        }
+      }
+    });
+
+    if (newErrors.length > 0) {
+      setErrors(prev => [...prev, ...newErrors]);
     }
-    setError(null);
-    setResult(null);
-    setSelectedFile(file);
-  }, []);
+
+    if (newFiles.length > 0) {
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+      setErrors([]); // Yeni başarılı dosya eklendiğinde eski hataları temizle
+    }
+  }, [selectedFiles]);
+
+  const removeFile = (indexToRemove: number) => {
+    setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
     setUploading(true);
-    setError(null);
+    setErrors([]);
+    setResults([]);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+    const successfulUploads: UploadResult[] = [];
+    const uploadErrors: string[] = [];
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+    // Dosyaları sırayla (veya istersen Promise.all ile paralel) backend'e gönderiyoruz
+    for (const file of selectedFiles) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Yukleme sirasinda hata olustu.");
-      } else {
-        setResult(data);
-        setSelectedFile(null);
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          uploadErrors.push(`"${file.name}": ${data.error || "Yükleme hatası."}`);
+        } else {
+          successfulUploads.push(data);
+        }
+      } catch {
+        uploadErrors.push(`"${file.name}": Bağlantı hatası.`);
       }
-    } catch {
-      setError("Baglanti hatasi.");
-    } finally {
-      setUploading(false);
     }
+
+    setResults(successfulUploads);
+    setErrors(uploadErrors);
+
+    // Yüklenen dosyaları listeden çıkar
+    if (successfulUploads.length > 0) {
+      setSelectedFiles([]);
+    }
+
+    setUploading(false);
   };
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleFiles(Array.from(e.dataTransfer.files));
+      }
     },
-    [handleFile]
+    [handleFiles]
   );
 
   if (!canUpload) {
     return (
       <div>
-        <AppHeader title="Dosya Yukle" />
+        <AppHeader title="Dosya Yükle" />
         <div className="flex items-center justify-center h-96">
           <p className="text-muted-foreground">
-            Bu sayfaya erisim yetkiniz yok.
+            Bu sayfaya erişim yetkiniz yok.
           </p>
         </div>
       </div>
@@ -96,8 +133,9 @@ export default function UploadPage() {
 
   return (
     <div>
-      <AppHeader title="Dosya Yukle" />
+      <AppHeader title="Çoklu Dosya Yükle" />
       <div className="p-6 max-w-2xl mx-auto space-y-6">
+
         {/* Drop zone */}
         <div
           onDragOver={(e) => {
@@ -106,11 +144,10 @@ export default function UploadPage() {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-            dragging
+          className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${dragging
               ? "border-primary bg-primary/5"
               : "border-border hover:border-primary/50"
-          }`}
+            }`}
         >
           <div className="flex flex-col items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
@@ -118,105 +155,112 @@ export default function UploadPage() {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium text-foreground">
-                Dosyanizi surukleyip birakin
+                Dosyalarınızı sürükleyip bırakın
               </p>
               <p className="text-xs text-muted-foreground">
-                Excel (.xlsx, .xls) veya CSV dosyasi
+                Excel (.xlsx, .xls) veya CSV dosyaları
               </p>
             </div>
             <label className="cursor-pointer px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-              Dosya Sec
+              Dosyaları Seç
               <input
                 type="file"
+                multiple // ÇOKLU SEÇİM İÇİN EKLENDİ
                 accept=".xlsx,.xls,.csv"
                 className="sr-only"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFile(file);
+                  if (e.target.files && e.target.files.length > 0) {
+                    handleFiles(Array.from(e.target.files));
+                  }
+                  e.target.value = ''; // Aynı dosyayı tekrar seçebilmek için input'u sıfırla
                 }}
               />
             </label>
           </div>
         </div>
 
-        {/* Selected file */}
-        {selectedFile && (
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border">
-            <FileSpreadsheet className="w-8 h-8 text-success shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-card-foreground truncate">
-                {selectedFile.name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {(selectedFile.size / 1024).toFixed(1)} KB
-              </p>
-            </div>
-            <button
-              onClick={() => setSelectedFile(null)}
-              className="p-1 rounded hover:bg-secondary transition-colors"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </button>
+        {/* Selected files list */}
+        {selectedFiles.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-foreground">Seçilen Dosyalar ({selectedFiles.length})</h3>
+            {selectedFiles.map((file, index) => (
+              <div key={`${file.name}-${index}`} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
+                <FileSpreadsheet className="w-6 h-6 text-success shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-card-foreground truncate">
+                    {file.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <button
+                  onClick={() => removeFile(index)}
+                  disabled={uploading}
+                  className="p-1.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors disabled:opacity-50"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Upload button */}
-        {selectedFile && (
+        {selectedFiles.length > 0 && (
           <button
             onClick={handleUpload}
             disabled={uploading}
-            className="w-full py-3 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {uploading ? "Isleniyor..." : "Yukle ve Isle"}
+            {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {uploading ? "İşleniyor..." : "Tümünü Yükle ve İşle"}
           </button>
         )}
 
-        {/* Error */}
-        {error && (
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
-            <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-destructive">Hata</p>
-              <p className="text-sm text-destructive/80">{error}</p>
-            </div>
+        {/* Errors */}
+        {errors.length > 0 && (
+          <div className="space-y-2">
+            {errors.map((err, idx) => (
+              <div key={idx} className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-destructive">Hata</p>
+                  <p className="text-sm text-destructive/80">{err}</p>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Success */}
-        {result && (
-          <div className="p-4 rounded-lg bg-success/10 border border-success/20 space-y-3">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  Basariyla yuklendi
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {result.document.title}
-                </p>
+        {/* Success Results */}
+        {results.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-foreground">Başarıyla Yüklenenler</h3>
+            {results.map((res, idx) => (
+              <div key={idx} className="p-4 rounded-lg bg-success/10 border border-success/20 space-y-3">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {res.document.title}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4 text-xs text-muted-foreground pl-8">
+                  <span>{res.sampleCount} numune</span>
+                  <span>{res.footnoteCount} dipnot</span>
+                </div>
+                <div className="flex gap-2 pl-8">
+                  <button
+                    onClick={() => router.push(`/dashboard/documents/${res.document.id}`)}
+                    className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Dokümanı Gör
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-4 text-xs text-muted-foreground pl-8">
-              <span>{result.sampleCount} numune</span>
-              <span>{result.footnoteCount} dipnot</span>
-            </div>
-            <div className="flex gap-2 pl-8">
-              <button
-                onClick={() => router.push(`/dashboard/documents/${result.document.id}`)}
-                className="text-xs px-3 py-1.5 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Dokumani Gor
-              </button>
-              <button
-                onClick={() => {
-                  setResult(null);
-                  setSelectedFile(null);
-                }}
-                className="text-xs px-3 py-1.5 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-              >
-                Yeni Yukleme
-              </button>
-            </div>
+            ))}
           </div>
         )}
 
@@ -225,22 +269,11 @@ export default function UploadPage() {
           <h3 className="text-sm font-medium text-card-foreground mb-2">
             Desteklenen Formatlar
           </h3>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>
-              Sistem Excel dosyasini alir, ilk sheet{"'"}i CSV{"'"}ye donusturur ve isler.
-            </li>
-            <li>
-              Kolonlarda numune isimleri, satirlarda analiz parametreleri olmali.
-            </li>
-            <li>
-              {"\""}Analiz Yorum{"\""} satir basinda yorum olarak degerlendirilir.
-            </li>
-            <li>
-              {"\""}Analiz Yorum{"\""} kolonda ise Numune degil Yorum olarak islenir.
-            </li>
-            <li>
-              Dipnotlar (*, NOT: ile baslayan satirlar) ayrica kaydedilir.
-            </li>
+          <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+            <li>Sistem Excel dosyasını alır, ilk sheet{"'"}i işler.</li>
+            <li>Kolonlarda numune isimleri, satırlarda analiz parametreleri olmalı.</li>
+            <li>{"\""}Analiz Yorum{"\""} satır başında yorum olarak değerlendirilir.</li>
+            <li>Dipnotlar (*, NOT: ile başlayan satırlar) ayrıca kaydedilir.</li>
           </ul>
         </div>
       </div>

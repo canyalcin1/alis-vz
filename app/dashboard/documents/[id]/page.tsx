@@ -13,6 +13,7 @@ import {
   Lock,
   AlertTriangle,
   FileText,
+  Download,
 } from "lucide-react";
 import { SampleTable } from "@/components/sample-table";
 
@@ -127,27 +128,39 @@ export default function DocumentDetailPage() {
     <div>
       <AppHeader title={doc.title} />
       <div className="p-6 space-y-6">
-        {/* Back button and meta */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push("/dashboard/documents")}
-            className="p-2 rounded-md hover:bg-secondary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground text-balance">
-              {doc.title}
-            </h2>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-              <span>{new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}</span>
-              <span>{doc.fileName}</span>
-              <span className="flex items-center gap-1">
-                <FlaskConical className="w-3 h-3" />
-                {samples.length} numune
-              </span>
+        {/* Back button, Meta and Download button */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboard/documents")}
+              className="p-2 rounded-md hover:bg-secondary transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground text-balance">
+                {doc.title}
+              </h2>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                <span>{new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}</span>
+                <span>{doc.fileName}</span>
+                <span className="flex items-center gap-1">
+                  <FlaskConical className="w-3 h-3" />
+                  {samples.length} numune
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* Orijinal Dosya İndir Butonu */}
+          <a
+            href={`/api/documents/${doc.id}/download`}
+            download
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            Orijinal Dosyayı İndir
+          </a>
         </div>
 
         {/* Access restriction banner */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { AppHeader } from "@/components/app-header";
-import { FileText, Search, Calendar, FlaskConical, Eye, Trash2 } from "lucide-react";
+import { FileText, Search, Calendar, FlaskConical, Eye, Trash2, Download } from "lucide-react"; // Download eklendi
 import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import Link from "next/link";
@@ -11,6 +11,7 @@ interface Doc {
   id: string;
   fileName: string;
   title: string;
+  originalFileUrl?: string; // Orijinal dosya URL'si eklendi
   uploadedBy: string;
   uploadedAt: string;
   status: string;
@@ -135,12 +136,25 @@ export default function DocumentsPage() {
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
+                {/* Orijinal Dosya İndir - Şartı kaldırdık, her zaman görünür */}
+                <a
+                  href={`/api/documents/${doc.id}/download`}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md hover:bg-secondary transition-colors"
+                  title="Orijinal Dosyayı İndir"
+                >
+                  <Download className="w-4 h-4 text-muted-foreground" />
+                </a>
+
                 <Link
                   href={`/dashboard/documents/${doc.id}`}
                   className="p-2 rounded-md hover:bg-secondary transition-colors"
                 >
                   <Eye className="w-4 h-4 text-muted-foreground" />
                 </Link>
+
                 {canDelete && (
                   <button
                     onClick={() => handleDelete(doc.id)}
@@ -160,6 +174,7 @@ export default function DocumentsPage() {
 }
 
 function FileSpreadsheetIcon({ className }: { className?: string }) {
+  // ... svg kodları aynı kalıyor
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

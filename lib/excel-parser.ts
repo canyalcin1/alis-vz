@@ -1,132 +1,161 @@
-import * as XLSX from "xlsx"
-import type { ParsedExcelResult, SampleSection, AnalysisRow } from "./types"
+import ExcelJS from "exceljs";
+import type { ParsedExcelResult, SampleSection, AnalysisRow } from "./types";
 
-/**
- * Parse an Excel file buffer and extract structured lab analysis data.
- * Supports multiple formats:
- * - Format A: Samples in columns, analyses in rows with optional section headers
- * - Format B: Samples in columns, mixed analysis types + comments
- * - Format C: Samples in columns, "Analiz Yorum" as row-level comment
- * - Format D: Samples with sub-groups (e.g., hareli/haresiz)
- */
-export function parseExcelBuffer(buffer: Buffer): ParsedExcelResult {
-  const workbook = XLSX.read(buffer, { type: "buffer" })
-  const sheetName = workbook.SheetNames[0]
-  const sheet = workbook.Sheets[sheetName]
+export async function parseExcelBuffer(buffer: Buffer): Promise<ParsedExcelResult> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
 
-  // Convert to array of arrays (raw rows)
-  const rawRows: (string | number | null)[][] = XLSX.utils.sheet_to_json(
-    sheet,
-    {
-      header: 1,
-      defval: null,
-      blankrows: true,
-      raw: false,
-    }
-  )
-
-  if (rawRows.length < 2) {
-    return { title: "", samples: [], footnotes: [], analysisTypes: [] }
+  const sheet = workbook.worksheets[0];
+  if (!sheet) {
+    return { title: "", samples: [], footnotes: [], analysisTypes: [] };
   }
 
-  // Step 1: Find title row
-  let title = ""
-  let headerRowIndex = -1
+  const imageMap = new Map<string, string[]>();
+
+  let maxRow = sheet.rowCount;
+  let maxCol = sheet.columnCount;
+
+  for (const image of sheet.getImages()) {
+    const img = workbook.getImage(image.imageId);
+    if (img && img.buffer) {
+      const ext = img.extension || "png";
+      const base64 = `data:image/${ext};base64,${img.buffer.toString("base64")}`;
+
+      const r = Math.floor(image.range.tl.nativeRow);
+      const c = Math.floor(image.range.tl.nativeCol);
+
+      if (r + 1 > maxRow) maxRow = r + 1;
+      if (c + 1 > maxCol) maxCol = c + 1;
+
+      const key = `${r},${c}`;
+      if (!imageMap.has(key)) {
+        imageMap.set(key, []);
+      }
+      imageMap.get(key)!.push(base64);
+    }
+  }
+
+  const rawRows: (string | number | null)[][] = [];
+
+  for (let r = 1; r <= maxRow; r++) {
+    const row = sheet.getRow(r);
+    const rowData: (string | number | null)[] = [];
+
+    for (let c = 1; c <= maxCol; c++) {
+      const cell = row.getCell(c);
+      let val = cell.value;
+
+      if (val && typeof val === "object") {
+        if ("result" in val) {
+          val = val.result;
+        } else if ("richText" in val && Array.isArray(val.richText)) {
+          val = val.richText.map((rt: any) => rt.text).join("");
+        }
+      }
+
+      let finalVal = val !== null && val !== undefined ? String(val).trim() : "";
+
+      const imgKey = `${r - 1},${c - 1}`;
+      if (imageMap.has(imgKey)) {
+        const imgs = imageMap.get(imgKey)!.join("|||");
+        finalVal = finalVal ? `${finalVal}|||${imgs}` : imgs;
+      }
+
+      rowData.push(finalVal || null);
+    }
+    rawRows.push(rowData);
+  }
+
+  if (rawRows.length < 2) {
+    return { title: "", samples: [], footnotes: [], analysisTypes: [] };
+  }
+
+  let title = "";
+  let headerRowIndex = -1;
 
   for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
-    const row = rawRows[i]
+    const row = rawRows[i];
     const joined = row
       .filter(Boolean)
       .map((c) => String(c).trim())
-      .join(" ")
+      .join(" ");
 
     if (
       joined.toUpperCase().includes("ANALIZ LABORATUVARI") ||
       joined.toUpperCase().includes("IS ISTEGI YANITI") ||
       joined.toUpperCase().includes("LABORATUVARI")
     ) {
-      title = joined
-      continue
+      title = joined;
+      continue;
     }
 
-    // Find the header row: the row that contains sample names in columns
-    // It's typically the first row after title that has multiple non-empty cells
-    const nonEmpty = row.filter(
-      (c) => c !== null && String(c).trim() !== ""
-    )
+    const nonEmpty = row.filter((c) => c !== null && String(c).trim() !== "");
     if (nonEmpty.length >= 2 && headerRowIndex === -1) {
-      // Check if first cell looks like an analysis label
-      const firstCell = String(row[0] || "").trim().toLowerCase()
+      const firstCell = String(row[0] || "").trim().toLowerCase();
       if (
         firstCell === "analizler" ||
         firstCell === "analiz" ||
         firstCell === "" ||
         firstCell.includes("analiz")
       ) {
-        headerRowIndex = i
-        break
+        headerRowIndex = i;
+        break;
       }
-      // Also accept if we already found a title and this has multiple columns
       if (title && nonEmpty.length >= 2) {
-        headerRowIndex = i
-        break
+        headerRowIndex = i;
+        break;
       }
     }
   }
 
   if (headerRowIndex === -1) {
-    // Fallback: use second non-empty row
     for (let i = 0; i < rawRows.length; i++) {
       const nonEmpty = rawRows[i].filter(
         (c) => c !== null && String(c).trim() !== ""
-      )
+      );
       if (nonEmpty.length >= 2) {
-        headerRowIndex = i
-        break
+        headerRowIndex = i;
+        break;
       }
     }
   }
 
   if (headerRowIndex === -1) {
-    return { title, samples: [], footnotes: [], analysisTypes: [] }
+    return { title, samples: [], footnotes: [], analysisTypes: [] };
   }
 
-  // Step 2: Extract sample names from header row
-  const headerRow = rawRows[headerRowIndex]
-  const sampleColumns: { index: number; name: string; isComment: boolean }[] =
-    []
+  const headerRow = rawRows[headerRowIndex];
+  const sampleColumns: { index: number; name: string; isComment: boolean }[] = [];
 
   for (let col = 1; col < headerRow.length; col++) {
-    const cellVal = String(headerRow[col] || "").trim()
-    if (!cellVal) continue
+    const cellVal = String(headerRow[col] || "").trim();
+    if (!cellVal) continue;
 
     const isComment =
       cellVal.toLowerCase().includes("analiz yorum") ||
-      cellVal.toLowerCase().includes("yorum")
+      cellVal.toLowerCase().includes("yorum");
 
     sampleColumns.push({
       index: col,
       name: cellVal,
       isComment,
-    })
+    });
   }
 
-  // Step 3: Parse data rows
-  const dataRows = rawRows.slice(headerRowIndex + 1)
-  const footnotes: string[] = []
-  const analysisTypes: string[] = []
+  const dataRows = rawRows.slice(headerRowIndex + 1);
+  const footnotes: string[] = [];
+  const analysisTypes: string[] = [];
 
-  // Per-sample data collection
   const sampleData: Map<
     number,
     {
-      name: string
-      isComment: boolean
-      sections: SampleSection[]
-      currentSection: SampleSection
-      comment: string | null
+      name: string;
+      isComment: boolean;
+      sections: SampleSection[];
+      currentSection: SampleSection;
+      comment: string | null;
     }
-  > = new Map()
+  > = new Map();
 
   for (const sc of sampleColumns) {
     sampleData.set(sc.index, {
@@ -135,18 +164,19 @@ export function parseExcelBuffer(buffer: Buffer): ParsedExcelResult {
       sections: [],
       currentSection: { title: "", rows: [] },
       comment: null,
-    })
+    });
   }
 
-  for (const row of dataRows) {
-    const firstCell = String(row[0] || "").trim()
+  let lastParameter = "";
 
-    // Skip completely empty rows
-    if (!firstCell && row.every((c) => !c || String(c).trim() === "")) {
-      continue
+  for (const row of dataRows) {
+    const firstCell = String(row[0] || "").trim();
+
+    const isRowEmpty = row.every((c) => !c || String(c).trim() === "");
+    if (!firstCell && isRowEmpty) {
+      continue;
     }
 
-    // Check for footnotes (starts with * or NOT: or Dipnot)
     if (
       firstCell.startsWith("*") ||
       firstCell.toUpperCase().startsWith("NOT:") ||
@@ -155,100 +185,116 @@ export function parseExcelBuffer(buffer: Buffer): ParsedExcelResult {
       const fullNote = row
         .filter(Boolean)
         .map((c) => String(c).trim())
-        .join(" ")
-      footnotes.push(fullNote)
-      continue
+        .join(" ");
+      footnotes.push(fullNote);
+      continue;
     }
 
-    // Check for section headers (e.g., "Solvent Kompozisyonu (%)")
-    const isSectionHeader = isSectionHeaderRow(firstCell, row, sampleColumns)
+    const isSectionHeader = isSectionHeaderRow(firstCell, row, sampleColumns);
     if (isSectionHeader) {
-      // Finalize current section and start new one
       for (const sc of sampleColumns) {
-        const sd = sampleData.get(sc.index)!
+        const sd = sampleData.get(sc.index)!;
         if (sd.currentSection.rows.length > 0) {
-          sd.sections.push({ ...sd.currentSection })
+          sd.sections.push({ ...sd.currentSection });
         }
-        sd.currentSection = { title: firstCell, rows: [] }
+        sd.currentSection = { title: firstCell, rows: [] };
       }
-      continue
+      continue;
     }
 
-    // Check for "TOPLAM" row
     if (firstCell.toUpperCase() === "TOPLAM") {
       for (const sc of sampleColumns) {
-        const sd = sampleData.get(sc.index)!
-        const val = String(row[sc.index] || "").trim()
-        sd.currentSection.rows.push({ parameter: "TOPLAM", value: val })
+        const sd = sampleData.get(sc.index)!;
+        const val = String(row[sc.index] || "").trim();
+        sd.currentSection.rows.push({ parameter: "TOPLAM", value: val });
       }
-      continue
+      continue;
     }
 
-    // Check if this is "Analiz Yorum" row
     if (
       firstCell.toLowerCase().includes("analiz yorum") ||
       firstCell.toLowerCase() === "yorum"
     ) {
       for (const sc of sampleColumns) {
-        const sd = sampleData.get(sc.index)!
-        const val = String(row[sc.index] || "").trim()
+        const sd = sampleData.get(sc.index)!;
+        const val = String(row[sc.index] || "").trim();
         if (val) {
-          sd.comment = val
+          sd.comment = val;
         }
       }
-      continue
+      continue;
     }
 
-    // Regular data row
+    // YENİ MANTIK BURADA: 
     if (firstCell) {
-      analysisTypes.push(firstCell)
+      lastParameter = firstCell;
+      analysisTypes.push(firstCell);
+
       for (const sc of sampleColumns) {
-        const sd = sampleData.get(sc.index)!
-        const val = String(row[sc.index] || "").trim()
-        const analysisRow: AnalysisRow = {
-          parameter: firstCell,
-          value: val,
+        const sd = sampleData.get(sc.index)!;
+        const val = String(row[sc.index] || "").trim();
+
+        // Aynı başlık zaten listeye eklendiyse yeni satır açma, üstüne ekle (Örn: "FTIR yapı" alt alta 2 kere yazıldıysa)
+        const existingRow = sd.currentSection.rows.find((r) => r.parameter === firstCell);
+
+        if (existingRow) {
+          if (val) {
+            existingRow.value = existingRow.value ? `${existingRow.value}|||${val}` : val;
+          }
+        } else {
+          sd.currentSection.rows.push({
+            parameter: firstCell,
+            value: val,
+          });
         }
-        sd.currentSection.rows.push(analysisRow)
+      }
+    }
+    // Sol taraf tamamen boşsa ama önceden analiz başlığı gördüysek, üstüne ekle
+    else if (lastParameter) {
+      for (const sc of sampleColumns) {
+        const sd = sampleData.get(sc.index)!;
+        const val = String(row[sc.index] || "").trim();
+
+        if (val) {
+          const existingRow = sd.currentSection.rows.find(r => r.parameter === lastParameter);
+          if (existingRow) {
+            existingRow.value = existingRow.value ? `${existingRow.value}|||${val}` : val;
+          }
+        }
       }
     }
   }
 
-  // Finalize last sections
   for (const sc of sampleColumns) {
-    const sd = sampleData.get(sc.index)!
+    const sd = sampleData.get(sc.index)!;
     if (sd.currentSection.rows.length > 0) {
-      sd.sections.push({ ...sd.currentSection })
+      sd.sections.push({ ...sd.currentSection });
     }
   }
 
-  // Build samples (exclude comment-only columns)
-  const samples: ParsedExcelResult["samples"] = []
+  const samples: ParsedExcelResult["samples"] = [];
   for (const sc of sampleColumns) {
-    const sd = sampleData.get(sc.index)!
+    const sd = sampleData.get(sc.index)!;
 
     if (sd.isComment) {
-      // This column is a comment column; distribute its values
-      // as comments to any prior sample that doesn't have one
-      continue
+      continue;
     }
 
     samples.push({
       name: sd.name,
       sections: sd.sections,
       comment: sd.comment,
-    })
+    });
   }
 
-  // Deduplicate analysis types
-  const uniqueAnalysisTypes = [...new Set(analysisTypes)]
+  const uniqueAnalysisTypes = [...new Set(analysisTypes)];
 
   return {
     title: title || "Analiz Raporu",
     samples,
     footnotes,
     analysisTypes: uniqueAnalysisTypes,
-  }
+  };
 }
 
 function isSectionHeaderRow(
@@ -256,22 +302,20 @@ function isSectionHeaderRow(
   row: (string | number | null)[],
   sampleColumns: { index: number }[]
 ): boolean {
-  const lower = firstCell.toLowerCase()
+  const lower = firstCell.toLowerCase();
 
-  // Common section headers
   if (
     lower.includes("solvent kompozisyon") ||
     lower.includes("kompozisyon") ||
     lower.includes("monomer kompozisyon") ||
     lower.includes("pigment kompozisyon")
   ) {
-    // Check if data columns are mostly empty for this row
     const hasData = sampleColumns.some((sc) => {
-      const val = String(row[sc.index] || "").trim()
-      return val !== "" && val !== "0" && val !== "0.00"
-    })
-    return !hasData
+      const val = String(row[sc.index] || "").trim();
+      return val !== "" && val !== "0" && val !== "0.00";
+    });
+    return !hasData;
   }
 
-  return false
+  return false;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
 
 interface SampleSection {
   title: string;
@@ -25,8 +25,9 @@ export function SampleTable({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set([""])
   );
+  // YENİ: Tam ekran görsel state'i
+  const [fullScreenImg, setFullScreenImg] = useState<string | null>(null);
 
-  // Collect all unique section titles
   const allSections = new Map<string, Set<string>>();
   for (const sample of samples) {
     for (const section of sample.sections) {
@@ -49,7 +50,6 @@ export function SampleTable({
     setExpandedSections(next);
   };
 
-  // Build value lookup per sample
   const getValueForSample = (
     sample: Sample,
     sectionTitle: string,
@@ -62,75 +62,97 @@ export function SampleTable({
   };
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-primary text-primary-foreground">
-            <th className="text-left px-4 py-3 text-xs font-semibold sticky left-0 bg-primary z-10 min-w-48">
-              Analizler
-            </th>
-            {samples.map((s) => (
-              <th
-                key={s.id}
-                className="text-center px-4 py-3 text-xs font-semibold min-w-36 whitespace-nowrap"
-              >
-                {s.name}
+    <>
+      {/* YENİ: Tam Ekran Görsel Modalı */}
+      {fullScreenImg && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={() => setFullScreenImg(null)}
+        >
+          <button
+            className="absolute top-6 right-6 p-2 bg-white/10 text-white rounded-full hover:bg-white/20 transition-colors"
+            onClick={() => setFullScreenImg(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={fullScreenImg}
+            alt="Detaylı Görsel"
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+          />
+        </div>
+      )}
+
+      <div className="overflow-x-auto rounded-lg border border-border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-primary text-primary-foreground">
+              <th className="text-left px-4 py-3 text-xs font-semibold sticky left-0 bg-primary z-10 min-w-48">
+                Analizler
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from(allSections.entries()).map(
-            ([sectionTitle, parameters]) => {
-              const isExpanded = expandedSections.has(sectionTitle);
-              const paramArray = Array.from(parameters);
-
-              return (
-                <SectionBlock
-                  key={sectionTitle}
-                  sectionTitle={sectionTitle}
-                  parameters={paramArray}
-                  samples={samples}
-                  isExpanded={isExpanded}
-                  onToggle={() => toggleSection(sectionTitle)}
-                  getValueForSample={getValueForSample}
-                  fullAccess={fullAccess}
-                />
-              );
-            }
-          )}
-
-          {/* Comments row */}
-          {samples.some((s) => s.comment) && (
-            <>
-              <tr className="bg-accent/10">
-                <td
-                  colSpan={samples.length + 1}
-                  className="px-4 py-2 text-xs font-semibold text-accent-foreground"
+              {samples.map((s) => (
+                <th
+                  key={s.id}
+                  className="text-center px-4 py-3 text-xs font-semibold min-w-36 whitespace-nowrap"
                 >
-                  Analiz Yorum
-                </td>
-              </tr>
-              <tr className="border-t border-border">
-                <td className="px-4 py-3 text-xs text-muted-foreground sticky left-0 bg-card z-10">
-                  Yorum
-                </td>
-                {samples.map((s) => (
+                  {s.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from(allSections.entries()).map(
+              ([sectionTitle, parameters]) => {
+                const isExpanded = expandedSections.has(sectionTitle);
+                const paramArray = Array.from(parameters);
+
+                return (
+                  <SectionBlock
+                    key={sectionTitle}
+                    sectionTitle={sectionTitle}
+                    parameters={paramArray}
+                    samples={samples}
+                    isExpanded={isExpanded}
+                    onToggle={() => toggleSection(sectionTitle)}
+                    getValueForSample={getValueForSample}
+                    fullAccess={fullAccess}
+                    onImageClick={(imgUrl) => setFullScreenImg(imgUrl)} // Modalı tetikleyen prop
+                  />
+                );
+              }
+            )}
+
+            {samples.some((s) => s.comment) && (
+              <>
+                <tr className="bg-accent/10">
                   <td
-                    key={s.id}
-                    className="px-4 py-3 text-xs text-foreground max-w-xs"
+                    colSpan={samples.length + 1}
+                    className="px-4 py-2 text-xs font-semibold text-accent-foreground"
                   >
-                    <div className="whitespace-pre-wrap leading-relaxed">
-                      {s.comment || "-"}
-                    </div>
+                    Analiz Yorum
                   </td>
-                ))}
-              </tr>
-            </>
-          )}
-        </tbody>
-      </table>
-    </div>
+                </tr>
+                <tr className="border-t border-border">
+                  <td className="px-4 py-3 text-xs text-muted-foreground sticky left-0 bg-card z-10">
+                    Yorum
+                  </td>
+                  {samples.map((s) => (
+                    <td
+                      key={s.id}
+                      className="px-4 py-3 text-xs text-foreground max-w-xs"
+                    >
+                      <div className="whitespace-pre-wrap leading-relaxed">
+                        {s.comment || "-"}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              </>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -142,6 +164,7 @@ function SectionBlock({
   onToggle,
   getValueForSample,
   fullAccess,
+  onImageClick,
 }: {
   sectionTitle: string;
   parameters: string[];
@@ -154,10 +177,10 @@ function SectionBlock({
     parameter: string
   ) => string;
   fullAccess: boolean;
+  onImageClick: (url: string) => void;
 }) {
   return (
     <>
-      {/* Section header row */}
       {sectionTitle && (
         <tr
           className="bg-secondary/70 cursor-pointer hover:bg-secondary transition-colors"
@@ -179,31 +202,57 @@ function SectionBlock({
         </tr>
       )}
 
-      {/* Data rows */}
       {(isExpanded || !sectionTitle) &&
         parameters.map((param, idx) => (
           <tr
             key={`${sectionTitle}-${param}`}
-            className={`border-t border-border ${
-              idx % 2 === 0 ? "bg-card" : "bg-secondary/20"
-            } hover:bg-primary/5 transition-colors`}
+            className={`border-t border-border ${idx % 2 === 0 ? "bg-card" : "bg-secondary/20"
+              } hover:bg-primary/5 transition-colors`}
           >
-            <td className="px-4 py-2.5 text-xs font-medium text-foreground sticky left-0 bg-inherit z-10">
+            <td className="px-4 py-2.5 text-xs font-medium text-foreground sticky left-0 bg-inherit z-10 align-middle">
               {param}
             </td>
             {samples.map((s) => {
               const val = getValueForSample(s, sectionTitle, param);
               const isRestricted = !fullAccess && val === "***";
+
+              if (isRestricted) {
+                return (
+                  <td key={s.id} className="px-4 py-2.5 text-center text-muted-foreground/40 italic align-middle">
+                    ***
+                  </td>
+                );
+              }
+
+              // YENİ: Değerin içinde "data:image/" veya "|||" (birden fazla içerik birleşimi) var mı diye kontrol edip bölüyoruz
+              if (typeof val === "string" && (val.includes("data:image/") || val.includes("|||"))) {
+                const parts = val.split("|||");
+                return (
+                  <td key={s.id} className="px-4 py-4 text-center align-middle">
+                    <div className="flex flex-col items-center justify-center gap-4">
+                      {parts.map((part, i) => {
+                        if (part.startsWith("data:image/")) {
+                          return (
+                            <img
+                              key={i}
+                              src={part}
+                              alt={`Analiz Görseli - ${param}`}
+                              onClick={() => onImageClick(part)}
+                              className="max-w-[320px] max-h-[240px] w-auto h-auto object-contain rounded-md border border-border/60 shadow-sm cursor-zoom-in hover:shadow-md hover:scale-[1.02] transition-all"
+                            />
+                          );
+                        }
+                        // Eğer hücrede fotoğrafla birlikte veya alt alta normal bir metin de varsa
+                        return part ? <span key={i} className="text-sm font-medium whitespace-pre-wrap">{part}</span> : null;
+                      })}
+                    </div>
+                  </td>
+                );
+              }
+
               return (
-                <td
-                  key={s.id}
-                  className={`px-4 py-2.5 text-xs text-center ${
-                    isRestricted
-                      ? "text-muted-foreground/40 italic"
-                      : "text-foreground"
-                  }`}
-                >
-                  {isRestricted ? "***" : val || "-"}
+                <td key={s.id} className="px-4 py-2.5 text-xs text-center text-foreground align-middle">
+                  {val || "-"}
                 </td>
               );
             })}
