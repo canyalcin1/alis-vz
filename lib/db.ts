@@ -138,6 +138,16 @@ export async function getDocuments(): Promise<Document[]> {
       d.status,
       d.sample_count as "sampleCount",
       d.analysis_types as "analysisTypes",
+      -- YENİ: Dokümana ait tüm numune adlarını, yorumları ve içindeki JSON analizlerini (FTIR, GPC vb.) tek bir metin yapıyoruz
+      (
+        SELECT string_agg(s.name || ' ' || COALESCE(s.comment, '') || ' ' || s.sections::text, ' ')
+        FROM samples s WHERE s.document_id = d.id
+      ) as "sampleText",
+      -- YENİ: Varsa tüm dipnotları da metne ekliyoruz
+      (
+        SELECT string_agg(f.text, ' ')
+        FROM document_footnotes f WHERE f.document_id = d.id
+      ) as "footnoteText",
       COALESCE(
         json_agg(
           json_build_object(
@@ -158,6 +168,8 @@ export async function getDocuments(): Promise<Document[]> {
 
   return rows.map((row) => ({
     ...row,
+    // Frontend'de arama yaparken kullanacağımız "Her şey dahil" gizli metin
+    searchableText: `${row.title} ${row.fileName} ${row.sampleText || ""} ${row.footnoteText || ""} ${row.analysisTypes?.join(" ") || ""}`.toLowerCase(),
     metadata: {
       sampleCount: row.sampleCount || 0,
       analysisTypes: row.analysisTypes || [],
@@ -501,11 +513,20 @@ export async function createFootnotes(newFootnotes: DocumentFootnote[]): Promise
 // Notifications
 export async function getNotificationsByUserId(userId: string): Promise<Notification[]> {
   const rows = await query<any>(
-    `SELECT id, user_id as "userId", type, title, message, related_request_id as "relatedRequestId", 
-            is_read as "isRead", created_at as "createdAt" 
-     FROM notifications 
-     WHERE user_id = $1 
-     ORDER BY created_at DESC`,
+    `SELECT 
+      n.id, 
+      n.user_id as "userId", 
+      n.type, 
+      n.title, 
+      n.message, 
+      n.related_request_id as "relatedRequestId", 
+      ar.document_id as "documentId", -- YENİ: access_requests tablosundan document_id'yi çekiyoruz
+      n.is_read as "isRead", 
+      n.created_at as "createdAt" 
+     FROM notifications n
+     LEFT JOIN access_requests ar ON n.related_request_id = ar.id
+     WHERE n.user_id = $1 
+     ORDER BY n.created_at DESC`,
     [userId]
   )
   return rows
@@ -545,15 +566,62 @@ export async function getApprovedDocumentsForUser(userId: string): Promise<any[]
       d.uploaded_by as "uploadedBy",
       d.uploaded_at as "uploadedAt",
       d.status,
-      d.metadata,
+      d.sample_count as "sampleCount",
+      d.analysis_types as "analysisTypes",
       ar.responded_at as "approvedAt",
       u.name as "responderName"
-    FROM analyses d
+    FROM documents d 
     INNER JOIN access_requests ar ON ar.document_id = d.id
     INNER JOIN users u ON u.id = ar.responder_id
     WHERE ar.requester_id = $1 AND ar.status = 'approved'
     ORDER BY ar.responded_at DESC`,
     [userId]
   )
-  return rows
+
+  // Frontend'in (MyDocumentsPage) beklediği formata (metadata objesine) çeviriyoruz
+  return rows.map((row) => ({
+    ...row,
+    metadata: {
+      sampleCount: row.sampleCount || 0,
+      analysisTypes: row.analysisTypes || [],
+    },
+  }))
+}
+
+// Kullanıcının belirli bir doküman için onaylı erişimi olup olmadığını kontrol eder
+export async function checkUserDocumentAccess(userId: string, documentId: string): Promise<boolean> {
+  const rows = await query(
+    "SELECT id FROM access_requests WHERE requester_id = $1 AND document_id = $2 AND status = 'approved'",
+    [userId, documentId]
+  );
+  return rows.length > 0;
+}
+
+// YENİ VE GÜVENLİ: Düzgün bildirim oluşturma fonksiyonu
+export async function createNotification(
+  userId: string,
+  type: string,
+  title: string,
+  message: string,
+  relatedRequestId?: string | null
+): Promise<void> {
+  try {
+    await query(
+      `INSERT INTO notifications (user_id, type, title, message, related_request_id) 
+       VALUES ($1, $2, $3, $4, $5)`,
+      [userId, type, title, message, relatedRequestId || null]
+    );
+  } catch (error) {
+    console.error("DB Bildirim Oluşturma Hatası:", error);
+    throw error;
+  }
+}
+
+// Kullanıcının onaylanmış doküman erişimini geri alır (İptal Eder)
+export async function revokeDocumentAccess(userId: string, documentId: string): Promise<boolean> {
+  const rows = await query(
+    "UPDATE access_requests SET status = 'rejected', responded_at = CURRENT_TIMESTAMP WHERE requester_id = $1 AND document_id = $2 AND status = 'approved' RETURNING id",
+    [userId, documentId]
+  )
+  return rows.length > 0
 }

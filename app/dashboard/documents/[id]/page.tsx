@@ -54,8 +54,16 @@ interface Doc {
   metadata: { sampleCount: number; analysisTypes: string[] };
 }
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  const data = await res.json();
 
+  // Eğer sunucudan 404, 500 gibi bir hata dönerse, SWR'yi uyar!
+  if (!res.ok) {
+    throw new Error(data.error || "Doküman yüklenirken bir hata oluştu.");
+  }
+  return data;
+};
 export default function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -72,6 +80,9 @@ export default function DocumentDetailPage() {
   const [requestNote, setRequestNote] = useState("");
   const [requesting, setRequesting] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+
+  // YENİ: Kullanıcı analiz ekibinden mi? (Yetki kontrolü)
+  const isAnalizOrAdmin = user?.role === "admin" || user?.role === "analiz_member";
 
   const handleAddNote = async () => {
     if (!noteText.trim()) return;
@@ -132,7 +143,13 @@ export default function DocumentDetailPage() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push("/dashboard/documents")}
+              onClick={() => {
+                if (window.history.length > 2) {
+                  router.back();
+                } else {
+                  router.push("/dashboard/documents");
+                }
+              }}
               className="p-2 rounded-md hover:bg-secondary transition-colors"
             >
               <ArrowLeft className="w-4 h-4 text-muted-foreground" />
@@ -152,15 +169,17 @@ export default function DocumentDetailPage() {
             </div>
           </div>
 
-          {/* Orijinal Dosya İndir Butonu */}
-          <a
-            href={`/api/documents/${doc.id}/download`}
-            download
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors shrink-0"
-          >
-            <Download className="w-4 h-4" />
-            Orijinal Dosyayı İndir
-          </a>
+          {/* Orijinal Dosya İndir Butonu - Sadece yetkililere veya izni olanlara */}
+          {fullAccess && (
+            <a
+              href={`/api/documents/${doc.id}/download`}
+              download
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors shrink-0"
+            >
+              <Download className="w-4 h-4" />
+              Orijinal Dosyayı İndir
+            </a>
+          )}
         </div>
 
         {/* Access restriction banner */}
@@ -231,49 +250,51 @@ export default function DocumentDetailPage() {
           </div>
         )}
 
-        {/* Notes section */}
-        <div className="p-4 rounded-lg bg-card border border-border space-y-4">
-          <h3 className="text-sm font-medium text-card-foreground flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Notlar ({doc.notes?.length || 0})
-          </h3>
+        {/* YENİ: Notes section - Sadece Analiz Lab. ve Admin görebilir/yazabilir */}
+        {isAnalizOrAdmin && (
+          <div className="p-4 rounded-lg bg-card border border-border space-y-4">
+            <h3 className="text-sm font-medium text-card-foreground flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Lab İçi Notlar ({doc.notes?.length || 0})
+            </h3>
 
-          {doc.notes && doc.notes.length > 0 && (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {doc.notes.map((note) => (
-                <div key={note.id} className="p-3 rounded-md bg-secondary/50">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium text-foreground">
-                      {note.userName}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {new Date(note.createdAt).toLocaleString("tr-TR")}
-                    </span>
+            {doc.notes && doc.notes.length > 0 && (
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+                {doc.notes.map((note) => (
+                  <div key={note.id} className="p-3 rounded-md bg-secondary/50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-foreground">
+                        {note.userName}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(note.createdAt).toLocaleString("tr-TR")}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{note.text}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{note.text}</p>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              placeholder="Not ekleyin..."
-              onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
-              className="flex-1 px-3 py-2 text-sm rounded-md border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-            <button
-              onClick={handleAddNote}
-              disabled={!noteText.trim() || sendingNote}
-              className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Lab içi not ekleyin..."
+                onKeyDown={(e) => e.key === "Enter" && handleAddNote()}
+                className="flex-1 px-3 py-2 text-sm rounded-md border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              <button
+                onClick={handleAddNote}
+                disabled={!noteText.trim() || sendingNote}
+                className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

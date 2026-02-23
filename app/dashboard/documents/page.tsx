@@ -1,17 +1,18 @@
 "use client";
 
 import { AppHeader } from "@/components/app-header";
-import { FileText, Search, Calendar, FlaskConical, Eye, Trash2, Download } from "lucide-react"; // Download eklendi
+import { FileText, Search, Calendar, FlaskConical, Eye, Trash2, Download } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 interface Doc {
   id: string;
   fileName: string;
   title: string;
-  originalFileUrl?: string; // Orijinal dosya URL'si eklendi
+  searchableText?: string;
   uploadedBy: string;
   uploadedAt: string;
   status: string;
@@ -25,24 +26,54 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function DocumentsPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const { data, error, mutate } = useSWR<{ documents: Doc[] }>(
     "/api/documents",
     fetcher
   );
-  const [search, setSearch] = useState("");
-  const [deleting, setDeleting] = useState<string | null>(null);
 
+  const [search, setSearch] = useState("");
+
+  // YENİ: Tarayıcı hafızasını ve URL'i senkronize eden harika hafıza bloğu
+  useEffect(() => {
+    const urlQuery = searchParams.get("q");
+    const savedQuery = sessionStorage.getItem("docSearchMemory");
+
+    if (urlQuery !== null) {
+      // 1. URL'de arama parametresi varsa (örn: üst bardan arama yapıldıysa veya geri tuşuna basıldıysa) onu kullan
+      setSearch(urlQuery);
+      sessionStorage.setItem("docSearchMemory", urlQuery);
+    } else if (savedQuery) {
+      // 2. URL boş ama hafızada son aranan kelime duruyorsa, onu otomatik geri yükle
+      setSearch(savedQuery);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("q", savedQuery);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, pathname, router]);
+
+  const [deleting, setDeleting] = useState<string | null>(null);
   const canDelete = user?.role === "admin" || user?.role === "analiz_member";
 
   const docs = data?.documents || [];
-  const filtered = docs.filter(
-    (d) =>
-      d.title.toLowerCase().includes(search.toLowerCase()) ||
-      d.fileName.toLowerCase().includes(search.toLowerCase()) ||
-      d.metadata.analysisTypes.some((t) =>
-        t.toLowerCase().includes(search.toLowerCase())
-      )
-  );
+
+  const searchTerm = search.toLowerCase();
+  const filtered = docs.filter((d) => {
+    if (!searchTerm) return true;
+
+    if (d.searchableText) {
+      return d.searchableText.includes(searchTerm);
+    }
+
+    return (
+      d.title.toLowerCase().includes(searchTerm) ||
+      d.fileName.toLowerCase().includes(searchTerm) ||
+      d.metadata.analysisTypes.some((t) => t.toLowerCase().includes(searchTerm))
+    );
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm("Bu dokumani silmek istediginize emin misiniz?")) return;
@@ -50,6 +81,28 @@ export default function DocumentsPage() {
     await fetch(`/api/documents/${id}`, { method: "DELETE" });
     mutate();
     setDeleting(null);
+  };
+
+  // YENİ: Yazıldıkça hem URL'i hem de Tarayıcı Hafızasını güncelleyen fonksiyon
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearch(val);
+
+    // Hafızaya kazı
+    if (val) {
+      sessionStorage.setItem("docSearchMemory", val);
+    } else {
+      sessionStorage.removeItem("docSearchMemory");
+    }
+
+    // URL'e yaz
+    const params = new URLSearchParams(searchParams.toString());
+    if (val) {
+      params.set("q", val);
+    } else {
+      params.delete("q");
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
   return (
@@ -62,10 +115,19 @@ export default function DocumentsPage() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Dokuman veya analiz tipi ara..."
+            onChange={handleSearchChange}
+            placeholder="Doküman, numune, FTIR, GPC ara..."
             className="w-full pl-9 pr-4 py-2 text-sm rounded-md border border-input bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
+          {/* İsteğe Bağlı Çarpı Butonu: Tıklayınca aramayı sıfırlar */}
+          {search && (
+            <button
+              onClick={() => handleSearchChange({ target: { value: "" } } as any)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs font-bold"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Error state */}
@@ -86,7 +148,7 @@ export default function DocumentsPage() {
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <FileText className="w-10 h-10 text-muted-foreground/50" />
             <p className="text-sm text-muted-foreground">
-              {search ? "Arama sonucu bulunamadi." : "Henuz dokuman yuklenmemis."}
+              {search ? `"${search}" için sonuc bulunamadi.` : "Henuz dokuman yuklenmemis."}
             </p>
           </div>
         )}
@@ -98,45 +160,52 @@ export default function DocumentsPage() {
               key={doc.id}
               className="flex items-center gap-4 p-4 rounded-lg bg-card border border-border hover:border-primary/30 transition-colors group"
             >
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <FileSpreadsheetIcon className="w-5 h-5 text-primary" />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-card-foreground truncate">
-                  {doc.title}
-                </h3>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <FlaskConical className="w-3 h-3" />
-                    {doc.metadata.sampleCount} numune
-                  </span>
+              {/* ANA TIKLANABİLİR ALAN (İkon, Başlık ve Etiketler) */}
+              <Link
+                href={`/dashboard/documents/${doc.id}`}
+                className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <FileSpreadsheetIcon className="w-5 h-5 text-primary" />
                 </div>
-                {doc.metadata.analysisTypes.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {doc.metadata.analysisTypes.slice(0, 4).map((t) => (
-                      <span
-                        key={t}
-                        className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground"
-                      >
-                        {t.length > 25 ? t.slice(0, 25) + "..." : t}
-                      </span>
-                    ))}
-                    {doc.metadata.analysisTypes.length > 4 && (
-                      <span className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground">
-                        +{doc.metadata.analysisTypes.length - 4}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
 
+                <div className="flex-1 min-w-0">
+                  {/* Hover durumunda başlık rengi primary rengine dönecek */}
+                  <h3 className="text-sm font-medium text-card-foreground truncate group-hover:text-primary transition-colors">
+                    {doc.title}
+                  </h3>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <FlaskConical className="w-3 h-3" />
+                      {doc.metadata.sampleCount} numune
+                    </span>
+                  </div>
+                  {doc.metadata.analysisTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {doc.metadata.analysisTypes.slice(0, 4).map((t) => (
+                        <span
+                          key={t}
+                          className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground"
+                        >
+                          {t.length > 25 ? t.slice(0, 25) + "..." : t}
+                        </span>
+                      ))}
+                      {doc.metadata.analysisTypes.length > 4 && (
+                        <span className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground">
+                          +{doc.metadata.analysisTypes.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Link>
+
+              {/* SAĞDAKİ AKSİYON BUTONLARI */}
               <div className="flex items-center gap-1 shrink-0">
-                {/* Orijinal Dosya İndir - Şartı kaldırdık, her zaman görünür */}
                 <a
                   href={`/api/documents/${doc.id}/download`}
                   download
@@ -148,6 +217,7 @@ export default function DocumentsPage() {
                   <Download className="w-4 h-4 text-muted-foreground" />
                 </a>
 
+                {/* Göz ikonunu alışkanlık yapanlar için yine de bıraktım, istersen silebilirsin */}
                 <Link
                   href={`/dashboard/documents/${doc.id}`}
                   className="p-2 rounded-md hover:bg-secondary transition-colors"
@@ -160,6 +230,7 @@ export default function DocumentsPage() {
                     onClick={() => handleDelete(doc.id)}
                     disabled={deleting === doc.id}
                     className="p-2 rounded-md hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                    title="Sil"
                   >
                     <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
                   </button>
@@ -174,7 +245,6 @@ export default function DocumentsPage() {
 }
 
 function FileSpreadsheetIcon({ className }: { className?: string }) {
-  // ... svg kodları aynı kalıyor
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

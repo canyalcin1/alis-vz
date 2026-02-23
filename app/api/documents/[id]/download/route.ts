@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { getDocumentFileContent } from "@/lib/db";
+import { getSession, canViewFullData } from "@/lib/auth";
+import { getDocumentFileContent, checkUserDocumentAccess } from "@/lib/db"; // İzin kontrolünü buraya da aldık
 
 export async function GET(
     req: Request,
@@ -13,6 +13,17 @@ export async function GET(
 
     try {
         const { id } = await params;
+
+        // GÜVENLİK DUVARI: İzin kontrolü
+        let fullAccess = canViewFullData(user.role);
+        if (!fullAccess) {
+            fullAccess = await checkUserDocumentAccess(user.id, id);
+        }
+
+        if (!fullAccess) {
+            return NextResponse.json({ error: "Bu dosyayı indirmek için erişim izniniz yok." }, { status: 403 });
+        }
+
         const docData = await getDocumentFileContent(id);
 
         if (!docData || !docData.fileContent) {
@@ -20,14 +31,11 @@ export async function GET(
         }
 
         const buffer = Buffer.from(docData.fileContent, "base64");
-
-        // TÜRKÇE KARAKTER ÇÖZÜMÜ BURADA: Dosya adını URL formatına çeviriyoruz
         const encodedFileName = encodeURIComponent(docData.fileName);
 
         return new NextResponse(buffer, {
             headers: {
                 "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                // filename*=UTF-8'' takısı tarayıcıya Türkçe karakterleri düzgün okumasını söyler
                 "Content-Disposition": `attachment; filename*=UTF-8''${encodedFileName}`,
                 "Content-Length": buffer.length.toString(),
             },

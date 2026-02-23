@@ -60,6 +60,6 @@ export function canApproveRequests(role: string): boolean {
   return role === "admin" || role === "analiz_member"
 }
 
-export function canManageUsers(role: string): boolean {
-  return role === "admin"
+export function canManageUsers(role: string) {
+  return role === "admin" || role === "analiz_member";
 }

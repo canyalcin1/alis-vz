@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 
 interface SampleSection {
@@ -25,8 +25,22 @@ export function SampleTable({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set([""])
   );
-  // YENİ: Tam ekran görsel state'i
   const [fullScreenImg, setFullScreenImg] = useState<string | null>(null);
+
+  // YENİ: ESC tuşuna basıldığında tam ekran görseli kapatma hafızası
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && fullScreenImg) {
+        setFullScreenImg(null);
+      }
+    };
+
+    // Dinleyiciyi ekle
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Component unmount olduğunda veya fullScreenImg kapandığında dinleyiciyi temizle
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fullScreenImg]);
 
   const allSections = new Map<string, Set<string>>();
   for (const sample of samples) {

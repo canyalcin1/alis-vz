@@ -85,8 +85,12 @@ export function NotificationBell() {
 
     if (notification.type === "access_request") {
       router.push("/dashboard/access-requests");
-    } else if (notification.type === "request_approved" && notification.relatedRequestId) {
-      router.push(`/dashboard/documents/${notification.relatedRequestId}`);
+    } else if (notification.type === "request_approved") {
+      // YENİ: documentId'yi kullan, eğer yoksa (eski bildirimler için) relatedRequestId'yi kullan
+      const targetId = (notification as any).documentId || notification.relatedRequestId;
+      if (targetId) {
+        router.push(`/dashboard/documents/${targetId}`);
+      }
     } else if (notification.type === "request_rejected") {
       router.push("/dashboard/requests");
     }

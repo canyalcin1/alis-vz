@@ -1,7 +1,7 @@
 "use client";
 
 import { AppHeader } from "@/components/app-header";
-import { FileText, Search, Calendar, FlaskConical, Eye, CheckCircle2 } from "lucide-react";
+import { FileText, Search, Calendar, FlaskConical, Eye, CheckCircle2, Download } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import useSWR from "swr";
 import Link from "next/link";
@@ -113,56 +113,75 @@ export default function MyDocumentsPage() {
               key={doc.id}
               className="flex items-center gap-4 p-4 rounded-lg bg-card border border-border hover:border-primary/30 transition-colors group"
             >
-              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
-                <FileSpreadsheetIcon className="w-5 h-5 text-success" />
-              </div>
+              {/* ANA TIKLANABİLİR ALAN (İkon, Başlık ve Etiketler) */}
+              <Link
+                href={`/dashboard/documents/${doc.id}`}
+                className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+                  <FileSpreadsheetIcon className="w-5 h-5 text-success" />
+                </div>
 
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-card-foreground truncate">
-                    {doc.title}
-                  </h3>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
-                </div>
-                <div className="flex items-center gap-3 mt-1 flex-wrap">
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    Yuklendi: {new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-success">
-                    <CheckCircle2 className="w-3 h-3" />
-                    Onaylandi: {new Date(doc.approvedAt).toLocaleDateString("tr-TR")}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <FlaskConical className="w-3 h-3" />
-                    {doc.metadata.sampleCount} numune
-                  </span>
-                </div>
-                {doc.responderName && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Onaylayan: {doc.responderName}
-                  </p>
-                )}
-                {doc.metadata.analysisTypes.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {doc.metadata.analysisTypes.slice(0, 4).map((t) => (
-                      <span
-                        key={t}
-                        className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground"
-                      >
-                        {t.length > 25 ? t.slice(0, 25) + "..." : t}
-                      </span>
-                    ))}
-                    {doc.metadata.analysisTypes.length > 4 && (
-                      <span className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground">
-                        +{doc.metadata.analysisTypes.length - 4}
-                      </span>
-                    )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-medium text-card-foreground truncate group-hover:text-primary transition-colors">
+                      {doc.title}
+                    </h3>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
                   </div>
-                )}
-              </div>
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Calendar className="w-3 h-3" />
+                      Yuklendi: {new Date(doc.uploadedAt).toLocaleDateString("tr-TR")}
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-success">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Onaylandi: {new Date(doc.approvedAt).toLocaleDateString("tr-TR")}
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <FlaskConical className="w-3 h-3" />
+                      {doc.metadata.sampleCount} numune
+                    </span>
+                  </div>
+                  {doc.responderName && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Onaylayan: {doc.responderName}
+                    </p>
+                  )}
+                  {doc.metadata.analysisTypes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {doc.metadata.analysisTypes.slice(0, 4).map((t) => (
+                        <span
+                          key={t}
+                          className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground"
+                        >
+                          {t.length > 25 ? t.slice(0, 25) + "..." : t}
+                        </span>
+                      ))}
+                      {doc.metadata.analysisTypes.length > 4 && (
+                        <span className="px-1.5 py-0.5 text-[10px] rounded bg-secondary text-secondary-foreground">
+                          +{doc.metadata.analysisTypes.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Link>
 
+              {/* SAĞDAKİ AKSİYON BUTONLARI */}
               <div className="flex items-center gap-1 shrink-0">
+                {/* Onaylı olduğu için doğrudan indirme yetkisi var */}
+                <a
+                  href={`/api/documents/${doc.id}/download`}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-md hover:bg-secondary transition-colors"
+                  title="Orijinal Dosyayı İndir"
+                >
+                  <Download className="w-4 h-4 text-muted-foreground" />
+                </a>
+
                 <Link
                   href={`/dashboard/documents/${doc.id}`}
                   className="p-2 rounded-md hover:bg-secondary transition-colors"

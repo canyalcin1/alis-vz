@@ -14,8 +14,7 @@ import {
     ArrowRight,
 } from "lucide-react";
 
-// Notification tipini projendeki yeriyle aynı olacak şekilde ayarlayabilirsin
-// Eğer global bir type dosyan varsa oradan da import edebilirsin: import { Notification } from "@/lib/types";
+// 1. DEĞİŞİKLİK: documentId eklendi
 interface Notification {
     id: string;
     title: string;
@@ -24,13 +23,13 @@ interface Notification {
     isRead: boolean;
     createdAt: string;
     relatedRequestId?: string | null;
+    documentId?: string | null; // <-- Bura eklendi
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function NotificationsPage() {
     const router = useRouter();
-    // SWR ile bildirimleri çekiyoruz. Mutate fonksiyonu listeyi anında güncellememizi sağlayacak.
     const { data: notifications, error, mutate } = useSWR<Notification[]>(
         "/api/notifications",
         fetcher
@@ -42,7 +41,6 @@ export default function NotificationsPage() {
     const unreadCount = safeNotifications.filter((n) => !n.isRead).length;
 
     const markAsReadAndNavigate = async (notification: Notification) => {
-        // Sadece okunmamışsa API'ye istek atıyoruz
         if (!notification.isRead) {
             try {
                 await fetch("/api/notifications", {
@@ -50,18 +48,21 @@ export default function NotificationsPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ notificationId: notification.id }),
                 });
-                // SWR önbelleğini yenile
                 mutate();
             } catch (error) {
                 console.error("Bildirim okundu isaretlenemedi:", error);
             }
         }
 
-        // Tipe göre ilgili sayfaya yönlendirme
+        // 2. DEĞİŞİKLİK: Yönlendirmede documentId kullanımına öncelik verildi
         if (notification.type === "access_request") {
             router.push("/dashboard/access-requests");
-        } else if (notification.type === "request_approved" && notification.relatedRequestId) {
-            router.push(`/dashboard/documents/${notification.relatedRequestId}`);
+        } else if (notification.type === "request_approved") {
+            // Eğer backend'den documentId geliyorsa onu kullan, yoksa fallback olarak relatedRequestId dene
+            const targetId = notification.documentId || notification.relatedRequestId;
+            if (targetId) {
+                router.push(`/dashboard/documents/${targetId}`);
+            }
         } else if (notification.type === "request_rejected") {
             router.push("/dashboard/requests");
         }
@@ -178,8 +179,8 @@ export default function NotificationsPage() {
                             key={notification.id}
                             onClick={() => markAsReadAndNavigate(notification)}
                             className={`group flex items-start gap-4 p-4 rounded-lg border transition-all cursor-pointer ${!notification.isRead
-                                    ? "bg-primary/5 border-primary/20 hover:border-primary/40"
-                                    : "bg-card border-border hover:border-primary/20"
+                                ? "bg-primary/5 border-primary/20 hover:border-primary/40"
+                                : "bg-card border-border hover:border-primary/20"
                                 }`}
                         >
                             {/* İkon */}
